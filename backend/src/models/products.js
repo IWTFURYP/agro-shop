@@ -11,9 +11,7 @@ const SELECT_FROM = `
 const SELECT_COLUMNS = `
   SELECT p.*,
          c.name AS category_name, c.slug AS category_slug, c.icon AS category_icon,
-         b.name AS brand_name,    b.slug AS brand_slug,
-         (SELECT ROUND(AVG(r.rating), 1) FROM reviews r WHERE r.product_id = p.id AND r.status = 'approved') AS rating_avg,
-         (SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.id AND r.status = 'approved') AS rating_count
+         b.name AS brand_name,    b.slug AS brand_slug
 `;
 
 const SORTS = {
@@ -22,7 +20,6 @@ const SORTS = {
   price_asc: 'p.price IS NULL, p.price ASC',
   price_desc: 'p.price IS NULL, p.price DESC',
   name: 'p.name COLLATE NOCASE ASC',
-  rating: 'rating_avg IS NULL, rating_avg DESC, rating_count DESC',
 };
 
 const splitList = (text) => (text ? text.split(',').map((s) => s.trim()).filter(Boolean) : []);
@@ -43,9 +40,7 @@ function serialize(row, extra = {}) {
     price: row.price,
     old_price: row.old_price,
     stock: row.stock,
-    min_stock: row.min_stock,
     in_stock: row.stock > 0,
-    rating: { avg: row.rating_avg ?? null, count: row.rating_count ?? 0 },
     crops: splitList(row.crops),
     targets: splitList(row.targets),
     rate_min: row.rate_min,
@@ -129,14 +124,6 @@ function buildFilters(query, { includeInactive = false } = {}) {
     if (!ids.length) where.push('0');
     else {
       where.push(`p.category_id IN (${ids.map(() => '?').join(',')})`);
-      params.push(...ids);
-    }
-  }
-  if (query.ids) {
-    const ids = String(query.ids).split(',').map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 100);
-    if (!ids.length) where.push('0');
-    else {
-      where.push(`p.id IN (${ids.map(() => '?').join(',')})`);
       params.push(...ids);
     }
   }
@@ -286,7 +273,6 @@ function parseProductInput(body) {
     price: optionalNumber(body.price),
     old_price: optionalNumber(body.old_price),
     stock: optionalNumber(body.stock) ?? 0,
-    min_stock: optionalNumber(body.min_stock) ?? 5,
     rate_min: optionalNumber(body.rate_min),
     rate_max: optionalNumber(body.rate_max),
     rate_unit: str(body.rate_unit, 20),
@@ -315,7 +301,6 @@ function parseProductInput(body) {
     errors.old_price = 'Некоректна стара ціна';
   }
   if (!Number.isInteger(data.stock) || data.stock < 0) errors.stock = 'Залишок має бути цілим числом ≥ 0';
-  if (!Number.isInteger(data.min_stock) || data.min_stock < 0) errors.min_stock = 'Має бути цілим числом ≥ 0';
   for (const f of ['rate_min', 'rate_max', 'package_size']) {
     if (Number.isNaN(data[f]) || (data[f] != null && data[f] <= 0)) errors[f] = 'Має бути числом більше 0';
   }
@@ -343,7 +328,7 @@ function parseProductInput(body) {
 
 const PRODUCT_COLUMNS = [
   'category_id', 'brand_id', 'name', 'slug', 'sku', 'short_description', 'description',
-  'active_ingredient', 'formulation', 'packaging', 'unit', 'price', 'old_price', 'stock', 'min_stock',
+  'active_ingredient', 'formulation', 'packaging', 'unit', 'price', 'old_price', 'stock',
   'crops', 'targets', 'rate_min', 'rate_max', 'rate_unit', 'package_size',
   'image_url', 'is_featured', 'is_active',
 ];

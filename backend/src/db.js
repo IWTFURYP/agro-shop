@@ -173,54 +173,6 @@ db.exec(`
     PRIMARY KEY (collection_id, product_id)
   );
 
-  -- Покупці з особистим кабінетом
-  CREATE TABLE IF NOT EXISTS customers (
-    id               INTEGER PRIMARY KEY AUTOINCREMENT,
-    name             TEXT NOT NULL,
-    email            TEXT NOT NULL UNIQUE,
-    phone            TEXT NOT NULL DEFAULT '',
-    password_hash    TEXT NOT NULL,
-    company          TEXT NOT NULL DEFAULT '',
-    edrpou           TEXT NOT NULL DEFAULT '',
-    region           TEXT NOT NULL DEFAULT '',
-    city             TEXT NOT NULL DEFAULT '',
-    delivery_address TEXT NOT NULL DEFAULT '',
-    created_at       TEXT NOT NULL DEFAULT (datetime('now'))
-  );
-
-  -- Відгуки про товари (публікуються після модерації)
-  CREATE TABLE IF NOT EXISTS reviews (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    product_id  INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-    customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL,
-    author_name TEXT    NOT NULL,
-    rating      INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
-    text        TEXT    NOT NULL DEFAULT '',
-    status      TEXT    NOT NULL DEFAULT 'pending',
-    admin_reply TEXT    NOT NULL DEFAULT '',
-    created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
-  );
-  CREATE INDEX IF NOT EXISTS idx_reviews_product ON reviews(product_id, status);
-
-  -- Календар обробок: етапи сезону для кожної культури
-  CREATE TABLE IF NOT EXISTS calendar_steps (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    crop        TEXT    NOT NULL,
-    month_from  INTEGER NOT NULL CHECK (month_from BETWEEN 1 AND 12),
-    month_to    INTEGER NOT NULL CHECK (month_to BETWEEN 1 AND 12),
-    stage       TEXT    NOT NULL DEFAULT '',
-    title       TEXT    NOT NULL,
-    description TEXT    NOT NULL DEFAULT '',
-    icon        TEXT    NOT NULL DEFAULT '',
-    sort_order  INTEGER NOT NULL DEFAULT 0
-  );
-  CREATE TABLE IF NOT EXISTS calendar_step_products (
-    step_id    INTEGER NOT NULL REFERENCES calendar_steps(id) ON DELETE CASCADE,
-    product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-    sort_order INTEGER NOT NULL DEFAULT 0,
-    PRIMARY KEY (step_id, product_id)
-  );
-
   CREATE TABLE IF NOT EXISTS admins (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     username      TEXT NOT NULL UNIQUE,
@@ -242,14 +194,6 @@ addColumn('products', 'rate_unit', "TEXT NOT NULL DEFAULT ''");
 addColumn('products', 'package_size', 'REAL');
 // Проблеми, які вирішує товар: бур'яни, хвороби, шкідники (через кому)
 addColumn('products', 'targets', "TEXT NOT NULL DEFAULT ''");
-// Поріг «закінчується на складі» для нагадувань в адмінці
-addColumn('products', 'min_stock', 'INTEGER NOT NULL DEFAULT 5');
-// Замовлення зареєстрованого покупця та чи списано товар зі складу
-addColumn('orders', 'customer_id', 'INTEGER REFERENCES customers(id) ON DELETE SET NULL');
-addColumn('orders', 'stock_reserved', 'INTEGER NOT NULL DEFAULT 0');
-// Скільки одиниць позиції списано зі складу (для повернення при скасуванні)
-addColumn('order_items', 'reserved_qty', 'INTEGER NOT NULL DEFAULT 0');
-db.exec('CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id)');
 
 function transaction(fn) {
   db.exec('BEGIN');

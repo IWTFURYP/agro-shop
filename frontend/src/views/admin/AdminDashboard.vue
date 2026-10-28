@@ -66,29 +66,6 @@ async function changePassword() {
         </div>
       </div>
 
-      <section v-if="stats.low_stock.length" class="card low">
-        <div class="low__head">
-          <span class="low__icon"><AppIcon name="alert" :size="20" /></span>
-          <div>
-            <h3>Закінчується на складі</h3>
-            <p class="muted">Товари, яких залишилось не більше встановленого порогу. Час замовити поставку.</p>
-          </div>
-        </div>
-        <ul class="low__list">
-          <li v-for="p in stats.low_stock" :key="p.id">
-            <RouterLink :to="`/admin/products/${p.id}`">{{ p.name }}</RouterLink>
-            <span class="muted">{{ p.sku }}</span>
-            <span class="badge" :class="p.stock === 0 ? 'badge--red' : 'badge--yellow'">
-              {{ p.stock === 0 ? 'немає в наявності' : `лишилось ${p.stock} ${p.unit}` }}
-            </span>
-          </li>
-        </ul>
-      </section>
-
-      <RouterLink v-if="stats.reviews_pending" to="/admin/reviews?status=pending" class="alert reviews-hint">
-        <AppIcon name="message" :size="18" /> Нових відгуків на модерацію: <strong>{{ stats.reviews_pending }}</strong>
-      </RouterLink>
-
       <div v-if="stats.products_without_image" class="alert alert--warn photos-hint">
         <AppIcon name="image" :size="18" /> {{ stats.products_without_image }} товарів ще без фото. Відкрийте товар → вставте посилання
         на фото в поле «Посилання на головне фото».
@@ -156,16 +133,6 @@ async function changePassword() {
 .tile small { color: var(--c-muted); }
 a.tile:hover { border-color: var(--c-primary); color: var(--c-text); }
 .photos-hint { margin-bottom: 20px; }
-.reviews-hint { margin-bottom: 20px; color: var(--c-primary-dark); }
-.low { margin-bottom: 20px; padding: 20px; border-color: #ecd49b; background: #fffbf1; }
-.low__head { display: flex; gap: 14px; align-items: flex-start; }
-.low__head h3 { margin: 0 0 2px; }
-.low__head p { margin: 0; font-size: 14px; }
-.low__icon { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--c-accent-light); color: #8a5f0d; flex-shrink: 0; }
-.low__list { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 8px; }
-.low__list li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 12px; border-radius: 10px; background: #fff; border: 1px solid #f0e3c2; font-size: 14px; }
-.low__list a { font-weight: 600; color: var(--c-text); }
-.low__list .badge { margin-left: auto; }
 .grid2 {
   display: grid;
   grid-template-columns: 2fr 1fr;

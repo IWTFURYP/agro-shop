@@ -1,9 +1,9 @@
 <script setup>
 const model = defineModel({ type: Number, default: 1 });
-const props = defineProps({ small: Boolean, max: { type: Number, default: 100000 } });
+defineProps({ small: Boolean });
 
 function set(value) {
-  model.value = Math.max(1, Math.min(props.max, Math.floor(Number(value)) || 1));
+  model.value = Math.max(1, Math.min(100000, Math.floor(Number(value)) || 1));
 }
 </script>
 
@@ -18,7 +18,7 @@ function set(value) {
       aria-label="Кількість"
       @change="set($event.target.value)"
     />
-    <button type="button" aria-label="Більше" :disabled="model >= max" @click="set(model + 1)">+</button>
+    <button type="button" aria-label="Більше" @click="set(model + 1)">+</button>
   </div>
 </template>
 

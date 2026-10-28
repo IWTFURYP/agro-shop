@@ -1,20 +1,16 @@
 <script setup>
 import AppIcon from '@/components/AppIcon.vue';
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '@/api';
 import { REGIONS, DELIVERY_METHODS, PAYMENT_METHODS } from '@/config';
 import { formatPrice } from '@/utils/format';
 import { useCartStore } from '@/stores/cart';
 import { useToastStore } from '@/stores/toast';
-import { useCustomerStore } from '@/stores/customer';
-import { useCartSync } from '@/composables/useCartSync';
 
 const cart = useCartStore();
 const toast = useToastStore();
 const router = useRouter();
-const customer = useCustomerStore();
-const { notice, sync } = useCartSync();
 
 const form = reactive({
   name: '',
@@ -32,19 +28,6 @@ const form = reactive({
 const isCompany = ref(false);
 const errors = ref({});
 const sending = ref(false);
-
-// Для покупця з кабінету підставляємо дані профілю
-onMounted(async () => {
-  sync();
-  if (!customer.isLoggedIn) return;
-  const p = customer.profile || (await customer.fetchProfile().catch(() => null));
-  if (!p) return;
-  for (const key of ['name', 'phone', 'region', 'city', 'delivery_address', 'company', 'edrpou']) {
-    if (!form[key] && p[key]) form[key] = p[key];
-  }
-  if (!form.email) form.email = p.email;
-  if (p.company || p.edrpou) isCompany.value = true;
-});
 
 const needsAddress = computed(() => form.delivery_method !== 'pickup');
 const addressLabel = computed(() =>
@@ -69,8 +52,6 @@ async function submit() {
     errors.value = err.fields || {};
     toast.error(err.message);
     if (errors.value.items) toast.error(errors.value.items);
-    // Залишки змінилися — підтягуємо актуальні дані
-    if (err.status === 409) sync();
   } finally {
     sending.value = false;
   }
@@ -92,13 +73,7 @@ async function submit() {
       <RouterLink to="/catalog" class="btn">До каталогу</RouterLink>
     </div>
 
-    <div v-if="notice" class="alert alert--warn checkout-notice"><AppIcon name="alert" :size="18" /> {{ notice }}</div>
-    <p v-if="cart.items.length && !customer.isLoggedIn" class="checkout-login muted">
-      <AppIcon name="user" :size="16" />
-      Маєте кабінет? <RouterLink :to="{ name: 'account-login', query: { redirect: '/checkout' } }">Увійдіть</RouterLink>,
-      щоб дані заповнились автоматично, а замовлення збереглося в історії.
-    </p>
-    <form v-if="cart.items.length" class="checkout" novalidate @submit.prevent="submit">
+    <form v-else class="checkout" novalidate @submit.prevent="submit">
       <div class="checkout__main">
         <section class="card card--pad">
           <h3><span class="step">1</span> Контактні дані</h3>
@@ -213,8 +188,6 @@ async function submit() {
 </template>
 
 <style scoped>
-.checkout-notice { margin-bottom: 16px; }
-.checkout-login { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: -8px 0 20px; font-size: 14px; }
 .checkout {
   display: grid;
   grid-template-columns: 1fr 380px;

@@ -112,11 +112,9 @@ async function remove(product) {
               <td>
                 <input
                   class="input stock"
-                  :class="{ low: p.price != null && p.stock <= p.min_stock }"
                   type="number"
                   min="0"
                   :value="p.stock"
-                  :title="p.price != null && p.stock <= p.min_stock ? `Закінчується (поріг ${p.min_stock})` : undefined"
                   @change="patch(p, { stock: Number($event.target.value) })"
                 />
               </td>
@@ -146,7 +144,6 @@ async function remove(product) {
 .pcell__name { font-weight: 600; color: var(--c-text); }
 .pcell__name:hover { color: var(--c-primary); }
 .stock { width: 80px; padding: 6px 8px; }
-.stock.low { border-color: #e2b552; background: var(--c-accent-light); font-weight: 600; }
 .cb { width: 18px; height: 18px; accent-color: var(--c-primary); cursor: pointer; }
 .nowrap { white-space: nowrap; }
 .inactive td { opacity: 0.55; }

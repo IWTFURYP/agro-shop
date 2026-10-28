@@ -4,15 +4,11 @@ import { useRoute, useRouter } from 'vue-router';
 import { SHOP } from '@/config';
 import { useCartStore } from '@/stores/cart';
 import { useCatalogStore } from '@/stores/catalog';
-import { useCompareStore } from '@/stores/compare';
-import { useCustomerStore } from '@/stores/customer';
 import AppLogo from './AppLogo.vue';
 import AppIcon from './AppIcon.vue';
 
 const cart = useCartStore();
 const catalog = useCatalogStore();
-const compare = useCompareStore();
-const customer = useCustomerStore();
 const route = useRoute();
 const router = useRouter();
 
@@ -24,9 +20,9 @@ const activeCat = ref(null);
 
 const NAV = [
   { to: '/problems', label: 'Підбір за проблемою' },
-  { to: '/calendar', label: 'Календар обробок' },
   { to: '/services', label: 'Протруювання' },
   { to: '/articles', label: 'Поради агронома' },
+  { to: '/about', label: 'Про нас' },
   { to: '/contacts', label: 'Контакти' },
 ];
 
@@ -144,18 +140,6 @@ function submitSearch() {
           <AppIcon name="phone" :size="20" />
           <span class="phone-text">{{ SHOP.phone }}</span>
         </a>
-        <RouterLink v-if="compare.count" to="/compare" class="icon-btn" aria-label="Порівняння товарів" title="Порівняння">
-          <AppIcon name="scale" :size="20" />
-          <span class="icon-btn__count">{{ compare.count }}</span>
-        </RouterLink>
-        <RouterLink
-          :to="customer.isLoggedIn ? '/account' : '/account/login'"
-          class="icon-btn"
-          :aria-label="customer.isLoggedIn ? 'Особистий кабінет' : 'Увійти'"
-          :title="customer.isLoggedIn ? 'Особистий кабінет' : 'Увійти в кабінет'"
-        >
-          <AppIcon :name="customer.isLoggedIn ? 'user' : 'log-in'" :size="20" />
-        </RouterLink>
         <RouterLink to="/cart" class="icon-btn" aria-label="Кошик">
           <AppIcon name="shopping-cart" :size="20" />
           <span v-if="cart.count" class="icon-btn__count">{{ cart.count > 99 ? '99+' : cart.count }}</span>
@@ -347,7 +331,7 @@ function submitSearch() {
 .header--transparent .search__input::placeholder { color: rgba(255, 255, 255, 0.75); }
 .header--transparent .search__icon { color: rgba(255, 255, 255, 0.8); }
 
-.header__actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.header__actions { display: flex; align-items: center; gap: 8px; }
 .icon-btn {
   position: relative;
   height: 42px;
@@ -387,14 +371,8 @@ function submitSearch() {
 @media (max-width: 1520px) {
   .phone-text { display: none; }
 }
-@media (max-width: 1480px) {
-  .header__nav .nav-link:nth-child(n + 6) { display: none; }
-}
-@media (max-width: 1400px) {
-  .header__nav .nav-link:nth-child(n + 5) { display: none; }
-}
 @media (max-width: 1160px) {
-  .header__nav .nav-link:nth-child(n + 4) { display: none; }
+  .header__nav .nav-link:nth-child(n + 5) { display: none; }
 }
 @media (max-width: 1000px) {
   .header__nav .nav-link:not(.nav-link--catalog) { display: none; }

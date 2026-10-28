@@ -12,7 +12,7 @@ const route = useRoute();
 const toast = useToastStore();
 const result = ref({ items: [], total: 0, page: 1, pages: 1 });
 const loading = ref(true);
-const filters = ref({ status: route.query.status || '', search: route.query.search || '', page: 1 });
+const filters = ref({ status: route.query.status || '', search: '', page: 1 });
 const opened = ref(null);
 
 let searchTimer;
@@ -121,7 +121,7 @@ async function remove(order) {
     <div v-if="opened" class="admin-modal-backdrop" @click.self="opened = null">
       <div class="admin-modal card order">
         <div class="order__head">
-          <h3>Замовлення № {{ opened.number }} <span v-if="opened.customer_id" class="badge badge--green">з кабінету</span></h3>
+          <h3>Замовлення № {{ opened.number }}</h3>
           <button class="btn btn--ghost btn--icon" aria-label="Закрити" @click="opened = null"><AppIcon name="x" /></button>
         </div>
         <p class="muted">{{ formatDate(opened.created_at) }}</p>
@@ -168,13 +168,6 @@ async function remove(order) {
 
         <div class="admin-modal__actions">
           <button class="btn btn--ghost btn--sm" @click="remove(opened)"><AppIcon name="trash" :size="16" /> Видалити</button>
-          <span class="spacer" />
-          <a :href="`/admin/orders/${opened.id}/print?type=picking`" target="_blank" class="btn btn--outline btn--sm">
-            <AppIcon name="clipboard" :size="16" /> Список для складу
-          </a>
-          <a :href="`/admin/orders/${opened.id}/print?type=invoice`" target="_blank" class="btn btn--outline btn--sm">
-            <AppIcon name="printer" :size="16" /> Накладна
-          </a>
           <button class="btn" @click="opened = null">Закрити</button>
         </div>
       </div>
@@ -188,8 +181,6 @@ async function remove(order) {
 .order { max-width: 760px; }
 .order__head { display: flex; justify-content: space-between; align-items: center; }
 .order__head h3 { margin: 0; }
-.admin-modal__actions { flex-wrap: wrap; }
-.admin-modal__actions .spacer { flex: 1; }
 .statuses { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 20px; }
 .details {
   display: grid;

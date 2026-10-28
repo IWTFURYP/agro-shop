@@ -2,16 +2,13 @@ const express = require('express');
 const { db, transaction } = require('../db');
 const { HttpError, str, normalizePhone, isEmail, oneOf } = require('../utils');
 const { getTiers, unitPrice } = require('../models/products');
-const stock = require('../models/stock');
-const { optionalCustomer } = require('../middleware/auth');
 
 const router = express.Router();
 
 const DELIVERY_METHODS = ['nova_poshta', 'pickup', 'company_delivery'];
 const PAYMENT_METHODS = ['invoice', 'card', 'cash_on_delivery'];
 
-// Оформлення замовлення. Якщо покупець увійшов у кабінет — замовлення прив'язується до нього.
-router.post('/', optionalCustomer, (req, res) => {
+router.post('/', (req, res) => {
   const body = req.body || {};
   const errors = {};
 
@@ -60,7 +57,7 @@ router.post('/', optionalCustomer, (req, res) => {
 
   // Ціни беремо ТІЛЬКИ з бази, а не з браузера клієнта
   const getProduct = db.prepare(
-    'SELECT id, name, sku, packaging, unit, price, stock FROM products WHERE id = ? AND is_active = 1',
+    'SELECT id, name, sku, packaging, unit, price FROM products WHERE id = ? AND is_active = 1',
   );
   const items = [];
   for (const [id, quantity] of quantities) {
@@ -74,23 +71,20 @@ router.post('/', optionalCustomer, (req, res) => {
     items.push({ ...product, price: unitPrice(product.price, getTiers(id), quantity), quantity });
   }
 
-  // Не можна замовити більше, ніж є на складі
-  stock.assertAvailable(items);
-
   const total = Math.round(items.reduce((sum, i) => sum + (i.price ?? 0) * i.quantity, 0) * 100) / 100;
   const hasPriceOnRequest = items.some((i) => i.price == null) ? 1 : 0;
 
   const created = transaction(() => {
     const { lastInsertRowid: orderId } = db
       .prepare(
-        `INSERT INTO orders (customer_id, customer_name, phone, email, company, edrpou, region, city,
-           delivery_method, delivery_address, payment_method, comment, total, has_price_on_request, stock_reserved)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+        `INSERT INTO orders (customer_name, phone, email, company, edrpou, region, city,
+           delivery_method, delivery_address, payment_method, comment, total, has_price_on_request)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
-        req.customer?.id ?? null, order.customer_name, order.phone, order.email, order.company,
-        order.edrpou, order.region, order.city, order.delivery_method, order.delivery_address,
-        order.payment_method, order.comment, total, hasPriceOnRequest,
+        order.customer_name, order.phone, order.email, order.company, order.edrpou, order.region,
+        order.city, order.delivery_method, order.delivery_address, order.payment_method,
+        order.comment, total, hasPriceOnRequest,
       );
 
     const date = new Date().toISOString().slice(2, 10).replace(/-/g, '');
@@ -98,14 +92,11 @@ router.post('/', optionalCustomer, (req, res) => {
     db.prepare('UPDATE orders SET number = ? WHERE id = ?').run(number, orderId);
 
     const insertItem = db.prepare(
-      `INSERT INTO order_items (order_id, product_id, product_name, sku, packaging, unit, price, quantity, reserved_qty)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO order_items (order_id, product_id, product_name, sku, packaging, unit, price, quantity)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     for (const i of items) {
-      // Товари з ціною списуються зі складу; «ціна за запитом» — ні
-      const reserved = i.price != null ? i.quantity : 0;
-      if (reserved) stock.deduct(i.id, reserved);
-      insertItem.run(orderId, i.id, i.name, i.sku, i.packaging, i.unit, i.price, i.quantity, reserved);
+      insertItem.run(orderId, i.id, i.name, i.sku, i.packaging, i.unit, i.price, i.quantity);
     }
     return { id: Number(orderId), number };
   });

@@ -32,7 +32,6 @@ const form = reactive({
   price: '',
   old_price: '',
   stock: 0,
-  min_stock: 5,
   crops: '',
   targets: '',
   rate_min: '',
@@ -277,12 +276,6 @@ async function save() {
             <label>Залишок на складі</label>
             <input v-model.number="form.stock" class="input" :class="{ invalid: errors.stock }" type="number" min="0" step="1" />
             <span v-if="errors.stock" class="error">{{ errors.stock }}</span>
-          </div>
-          <div class="field">
-            <label>Нагадати, коли залишиться</label>
-            <input v-model.number="form.min_stock" class="input" :class="{ invalid: errors.min_stock }" type="number" min="0" step="1" />
-            <span v-if="errors.min_stock" class="error">{{ errors.min_stock }}</span>
-            <span v-else class="hint">Товар потрапить у список «Закінчується» на головній адмінки</span>
           </div>
           <div class="field">
             <label>Оптові ціни</label>

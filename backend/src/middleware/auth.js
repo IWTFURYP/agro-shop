@@ -2,60 +2,22 @@ const jwt = require('jsonwebtoken');
 const config = require('../config');
 const { HttpError } = require('../utils');
 
-function readToken(req) {
-  const header = req.get('authorization') || '';
-  return header.startsWith('Bearer ') ? header.slice(7) : null;
-}
-
 function requireAdmin(req, _res, next) {
-  const token = readToken(req);
+  const header = req.get('authorization') || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
   if (!token) throw new HttpError(401, 'Потрібна авторизація');
-  let payload;
   try {
-    payload = jwt.verify(token, config.jwtSecret);
+    req.admin = jwt.verify(token, config.jwtSecret);
   } catch {
     throw new HttpError(401, 'Сесія завершилась, увійдіть знову');
   }
-  // Токен покупця не дає доступу до адмін-панелі
-  if (payload.role === 'customer') throw new HttpError(403, 'Недостатньо прав');
-  req.admin = payload;
   next();
 }
 
 function signToken(admin) {
-  return jwt.sign({ id: admin.id, username: admin.username, role: 'admin' }, config.jwtSecret, {
+  return jwt.sign({ id: admin.id, username: admin.username }, config.jwtSecret, {
     expiresIn: config.jwtExpiresIn,
   });
-}
-
-/* ---------- Покупці ---------- */
-
-function signCustomerToken(customer) {
-  return jwt.sign({ id: customer.id, role: 'customer' }, config.jwtSecret, { expiresIn: '30d' });
-}
-
-function decodeCustomer(req) {
-  const token = readToken(req);
-  if (!token) return null;
-  try {
-    const payload = jwt.verify(token, config.jwtSecret);
-    return payload.role === 'customer' ? payload : null;
-  } catch {
-    return null;
-  }
-}
-
-function requireCustomer(req, _res, next) {
-  const customer = decodeCustomer(req);
-  if (!customer) throw new HttpError(401, 'Увійдіть в особистий кабінет');
-  req.customer = customer;
-  next();
-}
-
-// Не вимагає входу, але якщо покупець увійшов — додає req.customer
-function optionalCustomer(req, _res, next) {
-  req.customer = decodeCustomer(req);
-  next();
 }
 
 // Простий захист від перебору паролів: не більше 10 спроб за 15 хвилин з однієї IP.
@@ -83,13 +45,4 @@ function clearFailedLogins(ip) {
   attempts.delete(ip);
 }
 
-module.exports = {
-  requireAdmin,
-  signToken,
-  signCustomerToken,
-  requireCustomer,
-  optionalCustomer,
-  loginRateLimit,
-  registerFailedLogin,
-  clearFailedLogins,
-};
+module.exports = { requireAdmin, signToken, loginRateLimit, registerFailedLogin, clearFailedLogins };

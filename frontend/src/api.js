@@ -1,6 +1,5 @@
 // Обгортка над fetch для звернень до бекенду
 const TOKEN_KEY = 'agro_admin_token';
-const CUSTOMER_TOKEN_KEY = 'agro_customer_token';
 
 export class ApiError extends Error {
   constructor(message, status, fields) {
@@ -27,35 +26,10 @@ export function setToken(token) {
   }
 }
 
-// Токен покупця (особистий кабінет) зберігається окремо від токена адміністратора
-export function getCustomerToken() {
-  try {
-    return localStorage.getItem(CUSTOMER_TOKEN_KEY);
-  } catch {
-    return null;
-  }
-}
-
-export function setCustomerToken(token) {
-  try {
-    if (token) localStorage.setItem(CUSTOMER_TOKEN_KEY, token);
-    else localStorage.removeItem(CUSTOMER_TOKEN_KEY);
-  } catch {
-    /* localStorage недоступний — працюємо без збереження */
-  }
-}
-
 let onUnauthorized = null;
 export function setUnauthorizedHandler(fn) {
   onUnauthorized = fn;
 }
-
-let onCustomerUnauthorized = null;
-export function setCustomerUnauthorizedHandler(fn) {
-  onCustomerUnauthorized = fn;
-}
-
-const isAdminUrl = (url) => url.startsWith('/admin') || url.startsWith('/auth');
 
 function toQuery(params) {
   const search = new URLSearchParams();
@@ -69,8 +43,7 @@ function toQuery(params) {
 async function request(method, url, { body, params } = {}) {
   const headers = { Accept: 'application/json' };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-  const adminRequest = isAdminUrl(url);
-  const token = adminRequest ? getToken() : getCustomerToken();
+  const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
 
   let response;
@@ -87,10 +60,7 @@ async function request(method, url, { body, params } = {}) {
   if (response.status === 204) return null;
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    if (response.status === 401 && token) {
-      if (adminRequest) onUnauthorized?.();
-      else onCustomerUnauthorized?.();
-    }
+    if (response.status === 401 && token && onUnauthorized) onUnauthorized();
     throw new ApiError(data.error || `Помилка ${response.status}`, response.status, data.fields);
   }
   return data;
