@@ -31,6 +31,7 @@ const year = new Date().getFullYear();
       <div>
         <h4>Аграріям</h4>
         <RouterLink to="/sad">Захист яблуневого саду</RouterLink>
+        <RouterLink to="/sad/journal">Щоденник обприскувань і погода</RouterLink>
         <RouterLink to="/problems">Підбір за проблемою</RouterLink>
         <RouterLink to="/articles">Поради агронома</RouterLink>
         <RouterLink to="/services">Протруювання насіння</RouterLink>

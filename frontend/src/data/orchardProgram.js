@@ -7,11 +7,13 @@
 //  optional — «за потреби»: у розрахунок не входить, доки покупець не позначить
 //  rate     — власна норма на 1 га (якщо відрізняється від норми в картці товару)
 //  perHa    — для штучних товарів: скільки штук на 1 га (мінімум 1 шт)
+//  interval — через скільки днів зазвичай наступна обробка після цього етапу [від, до]
 // ============================================================
 
 export const ORCHARD_PHASES = [
   {
     key: 'dormant',
+    interval: [10, 14],
     title: 'Сплячі бруньки — набухання',
     period: 'Березень',
     months: [3],
@@ -25,6 +27,7 @@ export const ORCHARD_PHASES = [
   },
   {
     key: 'green-tip',
+    interval: [7, 10],
     title: 'Зелений конус — мишаче вушко',
     period: 'Кінець березня — квітень',
     months: [3, 4],
@@ -39,6 +42,7 @@ export const ORCHARD_PHASES = [
   },
   {
     key: 'pink-bud',
+    interval: [7, 10],
     title: 'Рожевий бутон',
     period: 'Квітень',
     months: [4],
@@ -54,6 +58,7 @@ export const ORCHARD_PHASES = [
   },
   {
     key: 'bloom',
+    interval: [7, 10],
     title: 'Цвітіння',
     period: 'Кінець квітня — травень',
     months: [4, 5],
@@ -68,6 +73,7 @@ export const ORCHARD_PHASES = [
   },
   {
     key: 'petal-fall',
+    interval: [7, 10],
     title: 'Опадання пелюсток — зав\'язь',
     period: 'Травень',
     months: [5],
@@ -84,6 +90,7 @@ export const ORCHARD_PHASES = [
   },
   {
     key: 'fruit-growth',
+    interval: [10, 14],
     title: 'Ріст плодів',
     period: 'Червень — липень',
     months: [6, 7],
@@ -102,6 +109,7 @@ export const ORCHARD_PHASES = [
   },
   {
     key: 'pre-harvest',
+    interval: [14, 21],
     title: 'Перед збиранням',
     period: 'Серпень — вересень',
     months: [8, 9],
@@ -115,6 +123,7 @@ export const ORCHARD_PHASES = [
   },
   {
     key: 'autumn',
+    interval: [10, 14],
     title: 'Після збирання та листопад',
     period: 'Жовтень — листопад',
     months: [10, 11],
@@ -138,3 +147,41 @@ export const ORCHARD_RULES = [
   { icon: 'clock', title: 'Строк очікування', text: 'Від останньої обробки до збирання має минути вказана кількість днів — це безпека ваших яблук.' },
   { icon: 'droplets', title: 'Достатньо води', text: 'Для дорослого саду — 800–1000 л робочого розчину на 1 га (8–10 л на сотку).' },
 ];
+
+// Хімічні групи (коди FRAC / IRAC) — щоб щоденник підказував чергування препаратів.
+// kind: fungicide | insecticide | acaricide | nutrition | regulator | other
+// contact — контактний препарат (змивається сильним дощем); max — скільки разів за сезон
+export const GROUP_LABELS = {
+  M01: 'мідь', M02: 'сірка', M04: 'фталіміди', M09: 'хінони', OIL: 'мінеральні олії',
+  'FRAC 3': 'триазоли', 'FRAC 9': 'анілінопіримідини', 'FRAC 11': 'стробілурини', 'FRAC 12': 'фенілпіроли',
+  'IRAC 4A': 'неонікотиноїди', 'IRAC 6': 'авермектини', 'IRAC 18': 'регулятори линяння',
+  'IRAC 23': 'тетронові кислоти', 'IRAC 28': 'діаміди',
+};
+
+export const SKU_INFO = {
+  'APL-I01': { kind: 'insecticide', groups: ['OIL'], contact: true },
+  'APL-F01': { kind: 'fungicide', groups: ['M01'], contact: true },
+  'APL-F02': { kind: 'fungicide', groups: ['M01'], contact: true },
+  'APL-F03': { kind: 'fungicide', groups: ['M09'], contact: true, max: 6 },
+  'APL-F04': { kind: 'fungicide', groups: ['M04'], contact: true, max: 6 },
+  'APL-F05': { kind: 'fungicide', groups: ['FRAC 9'], max: 2 },
+  'APL-F06': { kind: 'fungicide', groups: ['FRAC 3'], max: 4 },
+  'APL-F07': { kind: 'fungicide', groups: ['M02'], contact: true },
+  'APL-F08': { kind: 'fungicide', groups: ['FRAC 11'], max: 3 },
+  'APL-F09': { kind: 'fungicide', groups: ['FRAC 9', 'FRAC 12'], max: 2 },
+  'APL-I02': { kind: 'insecticide', groups: ['IRAC 4A'], max: 2 },
+  'APL-I03': { kind: 'insecticide', groups: ['IRAC 6'], max: 2 },
+  'APL-I04': { kind: 'insecticide', groups: ['IRAC 18'], max: 2 },
+  'APL-I05': { kind: 'insecticide', groups: ['IRAC 23'], max: 2 },
+  'INS-003': { kind: 'insecticide', groups: ['IRAC 28'], max: 2 },
+  'APL-A01': { kind: 'acaricide', groups: ['IRAC 6'], max: 1 },
+  'APL-A02': { kind: 'acaricide', groups: ['IRAC 23'], max: 1 },
+  'APL-R01': { kind: 'regulator' },
+  'APL-R02': { kind: 'regulator' },
+  'APL-M01': { kind: 'nutrition' },
+  'APL-M02': { kind: 'nutrition' },
+  'MCR-002': { kind: 'nutrition' },
+  'FRT-002': { kind: 'nutrition' },
+  'APL-T01': { kind: 'other' },
+  'APL-T03': { kind: 'other' },
+};

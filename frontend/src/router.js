@@ -8,6 +8,7 @@ const routes = [
   { path: '/catalog/:category?', name: 'catalog', component: () => import('./views/CatalogView.vue'), meta: { title: 'Каталог товарів', description: 'Каталог засобів захисту рослин, насіння, добрив і сільгосптехніки з оптовими цінами та доставкою по Україні.' } },
   { path: '/problems', name: 'problems', component: () => import('./views/ProblemsView.vue'), meta: { title: 'Підбір препаратів за проблемою', description: "Оберіть культуру та проблему — бур'яни, хвороби чи шкідників — і отримайте перелік препаратів для захисту." } },
   { path: '/sad', name: 'orchard', component: () => import('./views/OrchardView.vue'), meta: { title: 'Програма захисту яблуневого саду', description: 'Схема обприскування яблуні за фенофазами: препарати проти парші, плодожерки, кліщів і гнилей з розрахунком на площу саду.' } },
+  { path: '/sad/journal', name: 'orchard-journal', component: () => import('./views/SprayJournalView.vue'), meta: { title: 'Щоденник обприскувань саду', description: 'Записуйте обприскування саду — підкажемо, коли й чим обробляти наступного разу та чи підходить погода: дощ, температура, вітер.' } },
   { path: '/articles', name: 'articles', component: () => import('./views/ArticlesView.vue'), meta: { title: 'Поради агронома', description: 'Корисні статті про захист рослин, живлення та технології вирощування польових культур.' } },
   { path: '/articles/:slug', name: 'article', component: () => import('./views/ArticleView.vue') },
   { path: '/product/:slug', name: 'product', component: () => import('./views/ProductView.vue') },

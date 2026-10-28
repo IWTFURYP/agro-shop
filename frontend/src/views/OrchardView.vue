@@ -180,6 +180,7 @@ function scrollToPhase(key) {
             <RouterLink :to="{ name: 'catalog', query: { crop: 'Яблуня' } }" class="btn btn--outline btn--sm">
               Усі товари для яблуні <AppIcon name="arrow-right" :size="16" />
             </RouterLink>
+            <RouterLink to="/sad/journal" class="btn btn--sm"><AppIcon name="cloud-rain" :size="16" /> Щоденник і погода для обприскування</RouterLink>
             <RouterLink to="/catalog/seedlings" class="btn btn--ghost btn--sm"><AppIcon name="trees" :size="16" /> Саджанці</RouterLink>
           </div>
         </div>
@@ -278,6 +279,12 @@ function scrollToPhase(key) {
 
             <footer class="phase__foot">
               <span>Етап: <strong>{{ formatPrice(ph.total) }}</strong></span>
+              <RouterLink
+                :to="{ name: 'orchard-journal', query: { phase: ph.key, skus: ph.chosen.map((r) => r.item.sku).join(',') } }"
+                class="btn btn--ghost btn--sm phase__journal"
+              >
+                <AppIcon name="check" :size="16" /> Я обприскав — записати
+              </RouterLink>
               <button class="btn btn--outline btn--sm" type="button" :disabled="!ph.chosen.length || !areaHa" @click="addPhase(ph)">
                 <AppIcon name="shopping-cart" :size="16" /> Додати етап у кошик
               </button>
@@ -441,7 +448,8 @@ function scrollToPhase(key) {
 .row__rate { font-size: 13px; }
 .row__calc { display: flex; flex-direction: column; align-items: flex-end; text-align: right; font-size: 14px; white-space: nowrap; }
 .row__calc .muted { font-size: 12px; }
-.phase__foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.phase__foot { display: flex; justify-content: space-between; align-items: center; gap: 8px 12px; flex-wrap: wrap; margin-top: 16px; }
+.phase__foot > span { margin-right: auto; }
 
 .rules { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
 .rule { padding: 24px; border-radius: var(--radius-lg); background: var(--c-sand); }
