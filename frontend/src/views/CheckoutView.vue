@@ -4,6 +4,7 @@ import { computed, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '@/api';
 import { REGIONS, DELIVERY_METHODS, PAYMENT_METHODS } from '@/config';
+import SettlementInput from '@/components/SettlementInput.vue';
 import { formatPrice } from '@/utils/format';
 import { useCartStore } from '@/stores/cart';
 import { useToastStore } from '@/stores/toast';
@@ -28,6 +29,11 @@ const form = reactive({
 const isCompany = ref(false);
 const errors = ref({});
 const sending = ref(false);
+
+// Обрали населений пункт із підказок — область заповнюємо автоматично
+function onSettlement(item) {
+  if (REGIONS.includes(item.region)) form.region = item.region;
+}
 
 const needsAddress = computed(() => form.delivery_method !== 'pickup');
 const addressLabel = computed(() =>
@@ -122,17 +128,17 @@ async function submit() {
             </label>
           </div>
           <div class="form-grid">
+            <div class="field full">
+              <label for="c-city">Населений пункт <span v-if="needsAddress" class="req">*</span></label>
+              <SettlementInput id="c-city" v-model="form.city" :invalid="Boolean(errors.city)" @select="onSettlement" />
+              <span v-if="errors.city" class="error">{{ errors.city }}</span>
+            </div>
             <div class="field">
               <label for="c-region">Область</label>
               <select id="c-region" v-model="form.region" class="select">
                 <option value="">— Оберіть —</option>
                 <option v-for="r in REGIONS" :key="r">{{ r }}</option>
               </select>
-            </div>
-            <div class="field">
-              <label for="c-city">Населений пункт <span v-if="needsAddress" class="req">*</span></label>
-              <input id="c-city" v-model="form.city" class="input" :class="{ invalid: errors.city }" />
-              <span v-if="errors.city" class="error">{{ errors.city }}</span>
             </div>
             <div v-if="needsAddress" class="field full">
               <label for="c-address">{{ addressLabel }} <span class="req">*</span></label>

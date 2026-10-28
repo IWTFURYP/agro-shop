@@ -2,6 +2,7 @@ const express = require('express');
 const { db } = require('../db');
 const { HttpError, parsePagination } = require('../utils');
 const products = require('../models/products');
+const settlements = require('../models/settlements');
 
 const router = express.Router();
 
@@ -39,6 +40,12 @@ router.get('/categories/:slug', (req, res) => {
     .prepare('SELECT id, name, slug, icon FROM categories WHERE parent_id = ? ORDER BY sort_order, name')
     .all(category.id);
   res.json({ ...category, parent, children });
+});
+
+// Підказки населених пунктів для форми замовлення: /api/settlements?q=топо
+router.get('/settlements', (req, res) => {
+  const limit = Math.min(20, Math.max(1, parseInt(req.query.limit, 10) || 10));
+  res.json(settlements.search(String(req.query.q || '').slice(0, 80), limit));
 });
 
 router.get('/brands', (_req, res) => {
