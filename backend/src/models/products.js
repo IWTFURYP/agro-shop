@@ -132,6 +132,11 @@ function buildFilters(query, { includeInactive = false } = {}) {
                 JOIN collections col ON col.id = cp.collection_id WHERE col.slug = ?)`);
     params.push(String(query.collection));
   }
+  if (query.skus) {
+    const skus = String(query.skus).split(',').map((x) => x.trim()).filter(Boolean).slice(0, 60);
+    where.push(skus.length ? `p.sku IN (${skus.map(() => '?').join(',')})` : '0');
+    params.push(...skus);
+  }
   if (query.brand) {
     const slugs = String(query.brand).split(',').filter(Boolean);
     where.push(`b.slug IN (${slugs.map(() => '?').join(',')})`);

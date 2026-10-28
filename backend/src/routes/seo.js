@@ -16,6 +16,7 @@ router.get('/sitemap.xml', (req, res) => {
   const urls = [
     { loc: '/', priority: '1.0' },
     { loc: '/catalog', priority: '0.9' },
+    { loc: '/sad', priority: '0.8' },
     { loc: '/problems', priority: '0.7' },
     { loc: '/articles', priority: '0.7' },
     { loc: '/services', priority: '0.6' },

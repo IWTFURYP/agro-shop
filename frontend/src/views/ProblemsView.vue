@@ -74,7 +74,7 @@ function submitSearch() {
           <span>Підбір за проблемою</span>
         </nav>
         <span class="eyebrow">Підбір препаратів</span>
-        <h1>Що турбує ваше поле?</h1>
+        <h1>Що турбує ваше поле чи сад?</h1>
         <p class="lead">Оберіть культуру й проблему — покажемо препарати, які з нею справляються.</p>
         <form class="psearch" @submit.prevent="submitSearch">
           <AppIcon name="search" :size="20" class="psearch__icon" />
@@ -191,6 +191,7 @@ function submitSearch() {
 .group__items { display: flex; flex-wrap: wrap; gap: 6px; }
 @media (max-width: 560px) {
   .psearch { flex-direction: column; }
+  .psearch input { flex: none; }
   .psearch__icon { top: 27px; }
 }
 </style>

@@ -5,6 +5,7 @@
 const bcrypt = require('bcryptjs');
 const config = require('./config');
 const { slugify } = require('./utils');
+const { seedOrchard } = require('./seedOrchard');
 
 // Фото для демо беруться за посиланням з Unsplash (у базі зберігається лише URL)
 const photo = (id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1200&q=70`;
@@ -378,6 +379,7 @@ function seedIfEmpty(db) {
   if (n === 0) seedCatalog(db);
   else upgradeOldData(db);
   seedContent(db);
+  seedOrchard(db);
 }
 
 function resetAndSeed(db) {
@@ -390,6 +392,7 @@ function resetAndSeed(db) {
   `);
   seedCatalog(db);
   seedContent(db);
+  seedOrchard(db);
 }
 
 module.exports = { seedIfEmpty };

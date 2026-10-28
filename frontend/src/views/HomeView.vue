@@ -100,8 +100,8 @@ function searchProblem(text = problem.value) {
       <div class="problem__text">
         <span class="problem__icon"><AppIcon name="microscope" :size="26" /></span>
         <div>
-          <h2>Що турбує ваше поле?</h2>
-          <p class="muted">Опишіть проблему — підберемо препарати. Наприклад, «септоріоз пшениці».</p>
+          <h2>Що турбує ваше поле чи сад?</h2>
+          <p class="muted">Опишіть проблему — підберемо препарати. Наприклад, «парша яблуні» чи «септоріоз пшениці».</p>
         </div>
       </div>
       <form class="problem__form" @submit.prevent="searchProblem()">
@@ -181,6 +181,29 @@ function searchProblem(text = problem.value) {
             <span class="link-arrow">{{ c.product_count }} товарів у добірці <AppIcon name="arrow-right" :size="16" /></span>
           </div>
         </RouterLink>
+      </div>
+    </div>
+  </section>
+
+  <!-- ЯБЛУНЕВИЙ САД -->
+  <section class="container">
+    <div v-reveal class="service service--orchard">
+      <div class="service__content">
+        <span class="badge badge--yellow">Для садівників</span>
+        <h2>Програма захисту яблуневого саду на весь сезон</h2>
+        <p>
+          Вісім етапів — від сплячих бруньок до листопаду. Вкажіть площу саду в сотках чи гектарах, і ми порахуємо,
+          скільки препаратів проти парші, плодожерки та кліщів потрібно, і скільки це коштуватиме.
+        </p>
+        <div class="service__points">
+          <span><AppIcon name="check" :size="18" /> Розрахунок на ваші сотки</span>
+          <span><AppIcon name="check" :size="18" /> Що робити саме зараз</span>
+          <span><AppIcon name="check" :size="18" /> Весь сезон — у кошик одним кліком</span>
+        </div>
+        <RouterLink to="/sad" class="btn btn--accent">Відкрити програму <AppIcon name="arrow-right" :size="18" /></RouterLink>
+      </div>
+      <div class="service__art" aria-hidden="true">
+        <AppIcon name="apple" :size="150" :stroke-width="1" />
       </div>
     </div>
   </section>
@@ -445,7 +468,8 @@ function searchProblem(text = problem.value) {
 }
 .bento__item--0 { grid-column: span 2; grid-row: span 2; }
 .bento__item--1 { grid-column: span 2; }
-.bento__item--4 { grid-column: span 4; background: linear-gradient(150deg, #b98a35, #6e4f15); }
+.bento__item--4 { grid-column: span 2; background: linear-gradient(150deg, #b98a35, #6e4f15); }
+.bento__item--5 { grid-column: span 2; background: linear-gradient(150deg, #b3553f, #5e2a1c); }
 .bento__item--2 { background: linear-gradient(150deg, #6d8f5b, #34512b); }
 .bento__item--3 { background: linear-gradient(150deg, #8a9f63, #49603a); }
 .bento__img { position: absolute; inset: 0; z-index: -2; transition: transform 0.7s var(--ease); }
@@ -494,7 +518,7 @@ function searchProblem(text = problem.value) {
 /* ---------- Добірки ---------- */
 .collections {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 20px;
 }
 .collection {
@@ -548,6 +572,14 @@ function searchProblem(text = problem.value) {
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: var(--c-accent);
 }
+
+.service--orchard {
+  margin-top: 72px;
+  background:
+    radial-gradient(circle at 85% 30%, rgba(214, 84, 64, 0.28), transparent 45%),
+    linear-gradient(140deg, #3d6b2f, #1f3f1b);
+}
+.service--orchard .service__art { color: #f0a08c; }
 
 /* ---------- Переваги ---------- */
 .section-head--center { justify-content: center; text-align: center; }
@@ -655,8 +687,8 @@ function searchProblem(text = problem.value) {
 @media (max-width: 1000px) {
   .bento { grid-template-columns: repeat(2, 1fr); }
   .bento__item--1 { grid-column: span 1; }
-  .bento__item--3, .bento__item--4 { grid-column: span 2; }
-  .collections, .articles { grid-template-columns: repeat(2, 1fr); }
+  .bento__item--3, .bento__item--4, .bento__item--5 { grid-column: span 2; }
+  .articles { grid-template-columns: repeat(2, 1fr); }
   .advantages { grid-template-columns: repeat(2, 1fr); }
   .problem { grid-template-columns: minmax(0, 1fr); }
   .service { grid-template-columns: 1fr; padding: 40px; }

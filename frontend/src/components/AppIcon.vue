@@ -2,15 +2,18 @@
 // Лінійні іконки Lucide (https://lucide.dev/icons). Щоб додати нову іконку:
 // імпортуйте її нижче й допишіть у ICONS під назвою в форматі kebab-case.
 import {
-  ArrowRight, Award, BadgeCheck, BookOpen, Bug, Calculator, CalendarDays, Check, ChevronDown,
+  Apple, ArrowRight, Award, BadgeCheck, BookOpen, Bug, Calculator, CalendarDays, Check, ChevronDown,
   ChevronRight, Clock, Download, Droplets, Eye, Factory, FileText, FlaskConical, Flower2, Gauge,
   Globe, Handshake, House, Image, Inbox, Info, Layers, LayoutGrid, Leaf, LogOut, Mail, MapPin, Menu,
   Microscope, Minus, Mountain, Package, Pencil, Percent, Phone, PhoneCall, Plus, Receipt, Search,
   ShieldCheck, ShoppingCart, SlidersHorizontal, Sparkles, Sprout, Star, Sun, Tags, Tractor, Trash2,
-  Truck, Users, Wheat, X,
+  Truck, Users, Wheat, X, Trees, Scissors, TreeDeciduous, Thermometer, CloudRain, TriangleAlert,
+  ListChecks, RefreshCw,
 } from '@lucide/vue';
 
 export const ICONS = {
+  apple: Apple, trees: Trees, scissors: Scissors, 'tree-deciduous': TreeDeciduous,
+  thermometer: Thermometer, 'cloud-rain': CloudRain, alert: TriangleAlert, 'list-checks': ListChecks, refresh: RefreshCw,
   'arrow-right': ArrowRight, award: Award, 'badge-check': BadgeCheck, 'book-open': BookOpen, bug: Bug,
   calculator: Calculator, 'calendar-days': CalendarDays, check: Check, 'chevron-down': ChevronDown,
   'chevron-right': ChevronRight, clock: Clock, download: Download, droplets: Droplets, eye: Eye,
@@ -28,6 +31,7 @@ export const ICONS = {
 export const ICON_CHOICES = [
   'shield-check', 'leaf', 'microscope', 'bug', 'flask-conical', 'droplets', 'sprout', 'sun', 'wheat',
   'flower-2', 'layers', 'sparkles', 'tractor', 'mountain', 'package', 'truck', 'star', 'gauge',
+  'apple', 'trees', 'tree-deciduous', 'scissors',
 ];
 </script>
 

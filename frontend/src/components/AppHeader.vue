@@ -19,6 +19,7 @@ const scrolled = ref(false);
 const activeCat = ref(null);
 
 const NAV = [
+  { to: '/sad', label: 'Яблуневий сад' },
   { to: '/problems', label: 'Підбір за проблемою' },
   { to: '/services', label: 'Протруювання' },
   { to: '/articles', label: 'Поради агронома' },
@@ -331,7 +332,7 @@ function submitSearch() {
 .header--transparent .search__input::placeholder { color: rgba(255, 255, 255, 0.75); }
 .header--transparent .search__icon { color: rgba(255, 255, 255, 0.8); }
 
-.header__actions { display: flex; align-items: center; gap: 8px; }
+.header__actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .icon-btn {
   position: relative;
   height: 42px;
@@ -371,8 +372,14 @@ function submitSearch() {
 @media (max-width: 1520px) {
   .phone-text { display: none; }
 }
-@media (max-width: 1160px) {
+@media (max-width: 1480px) {
+  .header__nav .nav-link:nth-child(n + 6) { display: none; }
+}
+@media (max-width: 1320px) {
   .header__nav .nav-link:nth-child(n + 5) { display: none; }
+}
+@media (max-width: 1160px) {
+  .header__nav .nav-link:nth-child(n + 4) { display: none; }
 }
 @media (max-width: 1000px) {
   .header__nav .nav-link:not(.nav-link--catalog) { display: none; }
