@@ -12,6 +12,8 @@
   --c-accent-hover: #c8922e;
   --c-accent-light: #f8eedb;
   --c-sand: #f6f2ea;
+  /* Колір даних на графіках (перевірено на контраст і насиченість) */
+  --c-chart: #2e8b47;
 
   --c-bg: #fbfaf7;
   --c-surface: #ffffff;

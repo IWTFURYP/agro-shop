@@ -12,6 +12,8 @@ const {
 } = require('../utils');
 const { transaction } = require('../db');
 const products = require('../models/products');
+const stock = require('../models/stock');
+const calendar = require('./calendar');
 
 const router = express.Router();
 router.use(requireAdmin);
@@ -38,9 +40,105 @@ router.get('/stats', (_req, res) => {
     orders_new: one("SELECT COUNT(*) AS n FROM orders WHERE status = 'new'").n,
     revenue_completed: one("SELECT COALESCE(SUM(total), 0) AS s FROM orders WHERE status = 'completed'").s,
     requests_new: one("SELECT COUNT(*) AS n FROM service_requests WHERE status = 'new'").n,
+    reviews_pending: one("SELECT COUNT(*) AS n FROM reviews WHERE status = 'pending'").n,
+    // Нагадування: товари з ціною, яких на складі не більше порогу min_stock
+    low_stock: db
+      .prepare(
+        `SELECT id, name, sku, stock, min_stock, unit FROM products
+         WHERE is_active = 1 AND price IS NOT NULL AND stock <= min_stock
+         ORDER BY stock ASC, name LIMIT 50`,
+      )
+      .all(),
     latest_orders: db
       .prepare('SELECT id, number, customer_name, phone, total, status, created_at FROM orders ORDER BY id DESC LIMIT 5')
       .all(),
+  });
+});
+
+/* ---------- Статистика продажів ---------- */
+
+// Продажі за період: виручка по днях (або місяцях), топ товарів, топ клієнтів, категорії.
+// Скасовані замовлення не враховуються.
+router.get('/stats/sales', (req, res) => {
+  const days = Math.min(730, Math.max(7, parseInt(req.query.days, 10) || 30));
+  const byMonth = days > 92;
+  const since = `-${days - 1} days`;
+  const periodExpr = byMonth ? "strftime('%Y-%m', o.created_at)" : 'date(o.created_at)';
+  const base = `FROM orders o WHERE o.status != 'cancelled' AND date(o.created_at) >= date('now', ?)`;
+
+  const totals = db
+    .prepare(`SELECT COUNT(*) AS orders, COALESCE(SUM(o.total), 0) AS revenue ${base}`)
+    .get(since);
+  const prevTotals = db
+    .prepare(
+      `SELECT COUNT(*) AS orders, COALESCE(SUM(o.total), 0) AS revenue FROM orders o
+       WHERE o.status != 'cancelled' AND date(o.created_at) >= date('now', ?) AND date(o.created_at) < date('now', ?)`,
+    )
+    .get(`-${days * 2 - 1} days`, since);
+  const rows = db
+    .prepare(`SELECT ${periodExpr} AS period, COUNT(*) AS orders, SUM(o.total) AS revenue ${base} GROUP BY period ORDER BY period`)
+    .all(since);
+
+  // Заповнюємо пропущені дні/місяці нулями, щоб графік був безперервним
+  const map = new Map(rows.map((r) => [r.period, r]));
+  const series = [];
+  const now = new Date();
+  if (byMonth) {
+    const months = Math.ceil(days / 30.4);
+    for (let i = months - 1; i >= 0; i--) {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+      const key = d.toISOString().slice(0, 7);
+      series.push({ period: key, orders: map.get(key)?.orders ?? 0, revenue: map.get(key)?.revenue ?? 0 });
+    }
+  } else {
+    for (let i = days - 1; i >= 0; i--) {
+      const key = new Date(now.getTime() - i * 86400000).toISOString().slice(0, 10);
+      series.push({ period: key, orders: map.get(key)?.orders ?? 0, revenue: map.get(key)?.revenue ?? 0 });
+    }
+  }
+
+  const itemsBase = `FROM order_items i JOIN orders o ON o.id = i.order_id
+    WHERE o.status != 'cancelled' AND date(o.created_at) >= date('now', ?)`;
+  const topProducts = db
+    .prepare(
+      `SELECT i.product_id AS id, i.product_name AS name, i.unit, SUM(i.quantity) AS quantity,
+              SUM(COALESCE(i.price, 0) * i.quantity) AS revenue, COUNT(DISTINCT o.id) AS orders
+       ${itemsBase} GROUP BY i.product_id, i.product_name ORDER BY revenue DESC, quantity DESC LIMIT 10`,
+    )
+    .all(since);
+  const byCategory = db
+    .prepare(
+      `SELECT COALESCE(pc.name, c.name, 'Без категорії') AS name, SUM(COALESCE(i.price, 0) * i.quantity) AS revenue
+       FROM order_items i JOIN orders o ON o.id = i.order_id
+       LEFT JOIN products p ON p.id = i.product_id
+       LEFT JOIN categories c ON c.id = p.category_id
+       LEFT JOIN categories pc ON pc.id = c.parent_id
+       WHERE o.status != 'cancelled' AND date(o.created_at) >= date('now', ?)
+       GROUP BY 1 HAVING revenue > 0 ORDER BY revenue DESC`,
+    )
+    .all(since);
+  // Клієнта визначаємо за телефоном (так враховуються й покупці без реєстрації)
+  const topCustomers = db
+    .prepare(
+      `SELECT o.phone, MAX(o.customer_name) AS name, MAX(o.company) AS company, COUNT(*) AS orders,
+              SUM(o.total) AS revenue, MAX(o.created_at) AS last_order, MAX(o.customer_id) AS customer_id
+       ${base} GROUP BY o.phone ORDER BY revenue DESC LIMIT 10`,
+    )
+    .all(since);
+  const statuses = db
+    .prepare(`SELECT status, COUNT(*) AS n FROM orders WHERE date(created_at) >= date('now', ?) GROUP BY status`)
+    .all(since);
+
+  res.json({
+    days,
+    granularity: byMonth ? 'month' : 'day',
+    totals: { ...totals, avg_check: totals.orders ? totals.revenue / totals.orders : 0 },
+    previous: prevTotals,
+    series,
+    top_products: topProducts,
+    top_customers: topCustomers,
+    by_category: byCategory,
+    statuses,
   });
 });
 
@@ -76,6 +174,11 @@ router.patch('/products/:id', (req, res) => {
     const stock = Number(body.stock);
     if (!Number.isInteger(stock) || stock < 0) throw new HttpError(400, 'Некоректний залишок');
     sets.push('stock = ?'); params.push(stock);
+  }
+  if ('min_stock' in body) {
+    const minStock = Number(body.min_stock);
+    if (!Number.isInteger(minStock) || minStock < 0) throw new HttpError(400, 'Некоректний поріг залишку');
+    sets.push('min_stock = ?'); params.push(minStock);
   }
   if ('price' in body) {
     const price = optionalNumber(body.price);
@@ -263,14 +366,26 @@ router.patch('/orders/:id', (req, res) => {
   const id = toId(req.params.id);
   const status = oneOf(req.body?.status, ORDER_STATUSES);
   if (!status) throw new HttpError(400, 'Некоректний статус');
-  const { changes } = db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(status, id);
-  if (!changes) throw new HttpError(404, 'Замовлення не знайдено');
+  const order = db.prepare('SELECT status FROM orders WHERE id = ?').get(id);
+  if (!order) throw new HttpError(404, 'Замовлення не знайдено');
+  transaction(() => {
+    // Скасування повертає товар на склад, відновлення — списує знову
+    if (status === 'cancelled') stock.releaseOrder(id);
+    else if (order.status === 'cancelled') stock.reserveOrder(id);
+    db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(status, id);
+  });
   res.json(db.prepare('SELECT * FROM orders WHERE id = ?').get(id));
 });
 
 router.delete('/orders/:id', (req, res) => {
-  const { changes } = db.prepare('DELETE FROM orders WHERE id = ?').run(toId(req.params.id));
-  if (!changes) throw new HttpError(404, 'Замовлення не знайдено');
+  const id = toId(req.params.id);
+  const order = db.prepare('SELECT status FROM orders WHERE id = ?').get(id);
+  if (!order) throw new HttpError(404, 'Замовлення не знайдено');
+  transaction(() => {
+    // Товар ще не відвантажено — повертаємо його на склад
+    if (order.status === 'new' || order.status === 'processing') stock.releaseOrder(id);
+    db.prepare('DELETE FROM orders WHERE id = ?').run(id);
+  });
   res.status(204).end();
 });
 
@@ -456,6 +571,122 @@ router.put('/collections/:id', (req, res) => {
 router.delete('/collections/:id', (req, res) => {
   const { changes } = db.prepare('DELETE FROM collections WHERE id = ?').run(toId(req.params.id));
   if (!changes) throw new HttpError(404, 'Добірку не знайдено');
+  res.status(204).end();
+});
+
+/* ---------- Відгуки (модерація) ---------- */
+
+const REVIEW_STATUSES = ['pending', 'approved', 'rejected'];
+
+router.get('/reviews', (req, res) => {
+  const { page, limit, offset } = parsePagination(req.query, 20, 100);
+  const status = oneOf(req.query.status, REVIEW_STATUSES);
+  const whereSql = status ? 'WHERE r.status = ?' : '';
+  const params = status ? [status] : [];
+  const { total } = db.prepare(`SELECT COUNT(*) AS total FROM reviews r ${whereSql}`).get(...params);
+  const items = db
+    .prepare(
+      `SELECT r.*, p.name AS product_name, p.slug AS product_slug
+       FROM reviews r LEFT JOIN products p ON p.id = r.product_id
+       ${whereSql} ORDER BY r.status = 'pending' DESC, r.id DESC LIMIT ? OFFSET ?`,
+    )
+    .all(...params, limit, offset);
+  res.json({ items, total, page, limit, pages: Math.max(1, Math.ceil(total / limit)) });
+});
+
+router.patch('/reviews/:id', (req, res) => {
+  const id = toId(req.params.id);
+  const body = req.body || {};
+  const sets = [];
+  const params = [];
+  if ('status' in body) {
+    const status = oneOf(body.status, REVIEW_STATUSES);
+    if (!status) throw new HttpError(400, 'Некоректний статус');
+    sets.push('status = ?'); params.push(status);
+  }
+  if ('admin_reply' in body) { sets.push('admin_reply = ?'); params.push(str(body.admin_reply, 2000)); }
+  if (!sets.length) throw new HttpError(400, 'Немає полів для оновлення');
+  const { changes } = db.prepare(`UPDATE reviews SET ${sets.join(', ')} WHERE id = ?`).run(...params, id);
+  if (!changes) throw new HttpError(404, 'Відгук не знайдено');
+  res.json(db.prepare('SELECT * FROM reviews WHERE id = ?').get(id));
+});
+
+router.delete('/reviews/:id', (req, res) => {
+  const { changes } = db.prepare('DELETE FROM reviews WHERE id = ?').run(toId(req.params.id));
+  if (!changes) throw new HttpError(404, 'Відгук не знайдено');
+  res.status(204).end();
+});
+
+/* ---------- Календар обробок ---------- */
+
+function parseCalendarStep(body) {
+  const data = {
+    crop: str(body.crop, 60),
+    month_from: Number(body.month_from),
+    month_to: Number(body.month_to),
+    stage: str(body.stage, 120),
+    title: str(body.title, 200),
+    description: str(body.description, 2000),
+    icon: str(body.icon, 40),
+    sort_order: optionalNumber(body.sort_order) ?? 0,
+  };
+  const productIds = [...new Set((Array.isArray(body.product_ids) ? body.product_ids : []).map(Number))]
+    .filter((n) => Number.isInteger(n) && n > 0);
+  const errors = {};
+  if (!data.crop) errors.crop = 'Вкажіть культуру';
+  if (!data.title) errors.title = 'Вкажіть назву етапу';
+  for (const f of ['month_from', 'month_to']) {
+    if (!Number.isInteger(data[f]) || data[f] < 1 || data[f] > 12) errors[f] = 'Місяць від 1 до 12';
+  }
+  if (Number.isNaN(data.sort_order)) errors.sort_order = 'Має бути числом';
+  if (Object.keys(errors).length) throw new HttpError(400, 'Перевірте поля', errors);
+  return { data, productIds };
+}
+
+function saveStepProducts(stepId, productIds) {
+  db.prepare('DELETE FROM calendar_step_products WHERE step_id = ?').run(stepId);
+  const insert = db.prepare(
+    'INSERT INTO calendar_step_products (step_id, product_id, sort_order) SELECT ?, id, ? FROM products WHERE id = ?',
+  );
+  productIds.forEach((pid, i) => insert.run(stepId, i, pid));
+}
+
+const CALENDAR_COLUMNS = ['crop', 'month_from', 'month_to', 'stage', 'title', 'description', 'icon', 'sort_order'];
+
+router.get('/calendar', (_req, res) => {
+  const steps = db.prepare('SELECT * FROM calendar_steps ORDER BY crop, sort_order, month_from, id').all();
+  res.json(calendar.attachProducts(steps, { includeInactive: true }));
+});
+
+router.post('/calendar', (req, res) => {
+  const { data, productIds } = parseCalendarStep(req.body || {});
+  const id = transaction(() => {
+    const { lastInsertRowid } = db
+      .prepare(`INSERT INTO calendar_steps (${CALENDAR_COLUMNS.join(', ')}) VALUES (${CALENDAR_COLUMNS.map(() => '?').join(', ')})`)
+      .run(...CALENDAR_COLUMNS.map((c) => data[c]));
+    saveStepProducts(lastInsertRowid, productIds);
+    return lastInsertRowid;
+  });
+  res.status(201).json(calendar.attachProducts([db.prepare('SELECT * FROM calendar_steps WHERE id = ?').get(id)])[0]);
+});
+
+router.put('/calendar/:id', (req, res) => {
+  const id = toId(req.params.id);
+  const { data, productIds } = parseCalendarStep(req.body || {});
+  const changes = transaction(() => {
+    const result = db
+      .prepare(`UPDATE calendar_steps SET ${CALENDAR_COLUMNS.map((c) => `${c} = ?`).join(', ')} WHERE id = ?`)
+      .run(...CALENDAR_COLUMNS.map((c) => data[c]), id);
+    if (result.changes) saveStepProducts(id, productIds);
+    return result.changes;
+  });
+  if (!changes) throw new HttpError(404, 'Етап не знайдено');
+  res.json(calendar.attachProducts([db.prepare('SELECT * FROM calendar_steps WHERE id = ?').get(id)])[0]);
+});
+
+router.delete('/calendar/:id', (req, res) => {
+  const { changes } = db.prepare('DELETE FROM calendar_steps WHERE id = ?').run(toId(req.params.id));
+  if (!changes) throw new HttpError(404, 'Етап не знайдено');
   res.status(204).end();
 });
 

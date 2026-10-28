@@ -2,15 +2,19 @@
 import { computed } from 'vue';
 import { formatPrice } from '@/utils/format';
 import { qty } from '@/utils/units';
+import { pricePerHa, formatPerHa } from '@/utils/pricing';
+import { useCompareStore } from '@/stores/compare';
 import { useCartStore } from '@/stores/cart';
 import { useToastStore } from '@/stores/toast';
 import ProductImage from './ProductImage.vue';
 import AppIcon from './AppIcon.vue';
+import StarRating from './StarRating.vue';
 
 const props = defineProps({ product: { type: Object, required: true } });
 
 const cart = useCartStore();
 const toast = useToastStore();
+const compare = useCompareStore();
 
 const discount = computed(() => {
   const { price, old_price: old } = props.product;
@@ -22,10 +26,23 @@ const bestTier = computed(() => {
   return tiers.length ? tiers[tiers.length - 1] : null;
 });
 const inCart = computed(() => cart.has(props.product.id));
+// Товар з ціною, якого немає на складі, купити не можна; техніка «за запитом» — під замовлення
+const soldOut = computed(() => props.product.price != null && !props.product.in_stock);
+const perHa = computed(() => formatPerHa(pricePerHa(props.product)));
+const stockLabel = computed(() => {
+  if (props.product.in_stock) return 'В наявності';
+  return soldOut.value ? 'Немає в наявності' : 'Під замовлення';
+});
 
 function addToCart() {
-  cart.add(props.product);
-  toast.success(`«${props.product.name}» додано в кошик`);
+  if (cart.add(props.product)) toast.success(`«${props.product.name}» додано в кошик`);
+  else toast.error(`Більше «${props.product.name}» на складі немає`);
+}
+
+function toggleCompare() {
+  const wasIn = compare.has(props.product.id);
+  if (!compare.toggle(props.product.id)) toast.error('Порівнювати можна до 4 товарів. Приберіть один зі списку');
+  else if (!wasIn) toast.success('Додано до порівняння');
 }
 </script>
 
@@ -39,17 +56,32 @@ function addToCart() {
         <span v-if="bestTier" class="badge badge--yellow"><AppIcon name="percent" :size="12" /> Опт</span>
       </div>
     </RouterLink>
+    <button
+      type="button"
+      class="pcard__compare"
+      :class="{ active: compare.has(product.id) }"
+      :title="compare.has(product.id) ? 'Прибрати з порівняння' : 'Порівняти'"
+      :aria-pressed="compare.has(product.id)"
+      @click="toggleCompare"
+    >
+      <AppIcon name="scale" :size="17" />
+    </button>
 
     <div class="pcard__body">
       <div class="pcard__meta">
         <span class="pcard__cat">{{ product.category?.name }}</span>
-        <span class="pcard__stock" :class="product.in_stock ? 'in' : 'out'">
-          {{ product.in_stock ? 'В наявності' : 'Під замовлення' }}
+        <span class="pcard__stock" :class="product.in_stock ? 'in' : soldOut ? 'none' : 'out'">
+          {{ stockLabel }}
         </span>
       </div>
       <RouterLink :to="`/product/${product.slug}`" class="pcard__title">{{ product.name }}</RouterLink>
       <p v-if="product.packaging" class="pcard__sub">{{ product.packaging }}</p>
       <p v-else-if="product.brand" class="pcard__sub">{{ product.brand.name }}</p>
+      <p v-if="product.rating?.count" class="pcard__rating">
+        <StarRating :value="product.rating.avg" :size="14" />
+        <span>{{ product.rating.avg }} · {{ product.rating.count }}</span>
+      </p>
+      <p v-if="perHa" class="pcard__perha">{{ perHa }}</p>
 
       <div class="pcard__footer">
         <div class="pcard__price">
@@ -60,6 +92,8 @@ function addToCart() {
         <button
           class="pcard__buy"
           :class="{ added: inCart }"
+          :disabled="soldOut"
+          :title="soldOut ? 'Немає в наявності' : undefined"
           :aria-label="product.price == null ? 'Запитати ціну' : 'Додати в кошик'"
           @click="addToCart"
         >
@@ -120,6 +154,29 @@ function addToCart() {
 .pcard__stock::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .pcard__stock.in { color: var(--c-primary); }
 .pcard__stock.out { color: #a8770f; }
+.pcard__stock.none { color: var(--c-muted); }
+.pcard__rating { margin: 2px 0 0; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--c-muted); }
+.pcard__perha { margin: 2px 0 0; font-size: 12px; font-weight: 600; color: var(--c-primary); }
+.pcard__compare {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--c-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-xs);
+  transition: color 0.15s, background 0.15s;
+}
+.pcard__compare:hover { color: var(--c-primary); }
+.pcard__compare.active { background: var(--c-primary); color: #fff; }
+.pcard__buy:disabled { background: #e8eae4; color: #a3aa9c; cursor: not-allowed; transform: none; }
 .pcard__title {
   margin-top: 2px;
   font-family: var(--font-head);

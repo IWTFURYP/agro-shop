@@ -2,8 +2,9 @@ import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import App from './App.vue';
 import router from './router';
-import { setUnauthorizedHandler } from './api';
+import { setUnauthorizedHandler, setCustomerUnauthorizedHandler } from './api';
 import { useAuthStore } from './stores/auth';
+import { useCustomerStore } from './stores/customer';
 import { reveal } from './directives/reveal';
 import './assets/main.css';
 
@@ -22,3 +23,11 @@ setUnauthorizedHandler(() => {
 });
 
 app.mount('#app');
+
+// Сесія покупця завершилась — виходимо з кабінету
+setCustomerUnauthorizedHandler(() => {
+  useCustomerStore(pinia).logout();
+  if (router.currentRoute.value.meta.requiresCustomer) {
+    router.push({ name: 'account-login', query: { redirect: router.currentRoute.value.fullPath } });
+  }
+});

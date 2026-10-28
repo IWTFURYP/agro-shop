@@ -17,6 +17,7 @@ router.get('/sitemap.xml', (req, res) => {
     { loc: '/', priority: '1.0' },
     { loc: '/catalog', priority: '0.9' },
     { loc: '/problems', priority: '0.7' },
+    { loc: '/calendar', priority: '0.7' },
     { loc: '/articles', priority: '0.7' },
     { loc: '/services', priority: '0.6' },
     { loc: '/about', priority: '0.5' },
@@ -48,7 +49,7 @@ router.get('/sitemap.xml', (req, res) => {
 
 router.get('/robots.txt', (req, res) => {
   res.type('text/plain').send(
-    ['User-agent: *', 'Disallow: /admin', 'Disallow: /cart', 'Disallow: /checkout', '', `Sitemap: ${siteUrl(req)}/sitemap.xml`, ''].join('\n'),
+    ['User-agent: *', 'Disallow: /admin', 'Disallow: /cart', 'Disallow: /checkout', 'Disallow: /account', 'Disallow: /compare', '', `Sitemap: ${siteUrl(req)}/sitemap.xml`, ''].join('\n'),
   );
 });
 

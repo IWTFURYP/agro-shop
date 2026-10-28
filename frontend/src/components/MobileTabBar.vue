@@ -1,19 +1,15 @@
 <script setup>
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { SHOP } from '@/config';
 import { useCartStore } from '@/stores/cart';
+import { useCustomerStore } from '@/stores/customer';
 import AppIcon from './AppIcon.vue';
 
 // Нижня панель навігації на телефонах, як у мобільних застосунках
 const cart = useCartStore();
+const customer = useCustomerStore();
 const route = useRoute();
-const router = useRouter();
-
-async function openSearch() {
-  if (route.name !== 'catalog') await router.push('/catalog');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-  window.dispatchEvent(new Event('focus-search'));
-}
+// Пошук на телефоні завжди видно в шапці, тому на панелі — особистий кабінет
 </script>
 
 <template>
@@ -26,10 +22,14 @@ async function openSearch() {
       <AppIcon name="layout-grid" :size="22" />
       <span>Каталог</span>
     </RouterLink>
-    <button class="tab" type="button" @click="openSearch">
-      <AppIcon name="search" :size="22" />
-      <span>Пошук</span>
-    </button>
+    <RouterLink
+      :to="customer.isLoggedIn ? '/account' : '/account/login'"
+      class="tab"
+      :class="{ active: String(route.name).startsWith('account') }"
+    >
+      <AppIcon name="user" :size="22" />
+      <span>Кабінет</span>
+    </RouterLink>
     <RouterLink to="/cart" class="tab" :class="{ active: route.name === 'cart' || route.name === 'checkout' }">
       <span class="tab__icon">
         <AppIcon name="shopping-cart" :size="22" />

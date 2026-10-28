@@ -5,7 +5,12 @@ import { useCartStore } from '@/stores/cart';
 import ProductImage from '@/components/ProductImage.vue';
 import QtyInput from '@/components/QtyInput.vue';
 
+import { onMounted } from 'vue';
+import { useCartSync } from '@/composables/useCartSync';
+
 const cart = useCartStore();
+const { notice, sync } = useCartSync();
+onMounted(sync);
 </script>
 
 <template>
@@ -23,7 +28,8 @@ const cart = useCartStore();
       <RouterLink to="/catalog" class="btn">Перейти до каталогу</RouterLink>
     </div>
 
-    <div v-else class="cart">
+    <div v-if="notice" class="alert alert--warn cart-notice"><AppIcon name="alert" :size="18" /> {{ notice }}</div>
+    <div v-if="cart.items.length" class="cart">
       <div class="cart__items card">
         <div v-for="item in cart.items" :key="item.id" class="citem">
           <RouterLink :to="`/product/${item.slug}`" class="citem__img">
@@ -38,7 +44,10 @@ const cart = useCartStore();
               <span v-if="cart.priceOf(item) < item.price" class="badge badge--yellow">опт</span>
             </span>
           </div>
-          <QtyInput :model-value="item.quantity" small @update:model-value="(q) => cart.setQuantity(item.id, q)" />
+          <div class="citem__qty">
+            <QtyInput :model-value="item.quantity" :max="cart.maxQty(item)" small @update:model-value="(q) => cart.setQuantity(item.id, q)" />
+            <small v-if="item.price != null && item.quantity >= item.stock" class="muted">на складі {{ item.stock }}</small>
+          </div>
           <strong class="citem__sum">
             {{ item.price == null ? '—' : formatPrice(cart.priceOf(item) * item.quantity) }}
           </strong>
@@ -102,6 +111,9 @@ const cart = useCartStore();
 .citem__name:hover { color: var(--c-primary); }
 .citem__unit { color: var(--c-primary-dark); font-weight: 500; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .summary__save { color: #8a5f0d; }
+.cart-notice { margin-bottom: 16px; }
+.citem__qty { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.citem__qty small { font-size: 11px; }
 .citem__sum { text-align: right; font-family: var(--font-head); }
 .citem__remove {
   width: 32px;
@@ -136,7 +148,7 @@ const cart = useCartStore();
   .citem__img { grid-area: img; width: 64px; height: 64px; }
   .citem__info { grid-area: info; }
   .citem__remove { grid-area: rm; }
-  .citem .qty { grid-area: qty; }
+  .citem__qty { grid-area: qty; align-items: flex-start; }
   .citem__sum { grid-column: 2 / 4; text-align: right; }
 }
 </style>

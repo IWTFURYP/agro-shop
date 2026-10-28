@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router';
 import { api } from '@/api';
 import { SHOP } from '@/config';
 import { formatPrice } from '@/utils/format';
-import { unitPrice, nextTier } from '@/utils/pricing';
+import { unitPrice, nextTier, pricePerHa, formatPerHa } from '@/utils/pricing';
 import { qty } from '@/utils/units';
 import { setSeo } from '@/composables/useSeo';
 import { useCartStore } from '@/stores/cart';
@@ -12,6 +12,9 @@ import { useToastStore } from '@/stores/toast';
 import { useAssistantStore } from '@/stores/assistant';
 import ProductImage from '@/components/ProductImage.vue';
 import ProductCard from '@/components/ProductCard.vue';
+import ProductReviews from '@/components/ProductReviews.vue';
+import StarRating from '@/components/StarRating.vue';
+import { useCompareStore } from '@/stores/compare';
 import QtyInput from '@/components/QtyInput.vue';
 import RateCalculator from '@/components/RateCalculator.vue';
 import AppIcon from '@/components/AppIcon.vue';
@@ -22,6 +25,7 @@ const toast = useToastStore();
 const assistant = useAssistantStore();
 
 const product = ref(null);
+const compare = useCompareStore();
 const loading = ref(true);
 const error = ref('');
 const quantity = ref(1);
@@ -44,6 +48,7 @@ const specs = computed(() => {
     ['Упаковка', p.packaging],
     ['Одиниця продажу', p.unit],
     ['Норма витрати', p.rate_min != null ? `${p.rate_min}${p.rate_max > p.rate_min ? `–${p.rate_max}` : ''} ${p.rate_unit}` : ''],
+    ['Вартість обробки 1 га', formatPerHa(pricePerHa(p))],
     ['Культури', p.crops.join(', ')],
     ['Проти', p.targets.join(', ')],
   ].filter(([, v]) => v);
@@ -105,9 +110,25 @@ async function load() {
 
 watch(() => route.params.slug, (slug) => slug && load(), { immediate: true });
 
+// Товар з ціною, якого немає на складі, купити не можна
+const soldOut = computed(() => product.value?.price != null && !product.value.in_stock);
+const maxQty = computed(() => (product.value?.price != null ? Math.max(1, product.value.stock) : 100000));
+const perHa = computed(() => formatPerHa(pricePerHa(product.value, currentPrice.value)));
+
 function addToCart(qty = quantity.value) {
-  cart.add(product.value, qty);
-  toast.success(`Додано в кошик: ${product.value.name} × ${qty}`);
+  const added = cart.add(product.value, qty);
+  if (!added) toast.error('Усю наявну кількість уже додано в кошик');
+  else if (added < qty) toast.success(`Додано ${added} — більше на складі немає`);
+  else toast.success(`Додано в кошик: ${product.value.name} × ${added}`);
+}
+
+function toggleCompare() {
+  if (!compare.toggle(product.value.id)) toast.error('Порівнювати можна до 4 товарів');
+}
+
+function scrollToReviews() {
+  tab.value = 'reviews';
+  document.querySelector('.details')?.scrollIntoView({ behavior: 'smooth' });
 }
 </script>
 
@@ -156,13 +177,20 @@ function addToCart(qty = quantity.value) {
 
         <div class="info">
           <div class="info__top">
-            <span class="badge" :class="product.in_stock ? 'badge--green' : 'badge--yellow'">
-              <AppIcon :name="product.in_stock ? 'check' : 'clock'" :size="13" />
-              {{ product.in_stock ? 'В наявності' : 'Під замовлення' }}
+            <span class="badge" :class="product.in_stock ? 'badge--green' : soldOut ? 'badge--gray' : 'badge--yellow'">
+              <AppIcon :name="product.in_stock ? 'check' : soldOut ? 'x' : 'clock'" :size="13" />
+              <template v-if="product.in_stock && product.price != null">В наявності: {{ qty(product.stock, product.unit) }}</template>
+              <template v-else-if="product.in_stock">В наявності</template>
+              <template v-else>{{ soldOut ? 'Немає в наявності' : 'Під замовлення' }}</template>
             </span>
             <span v-if="product.sku" class="muted">Артикул: {{ product.sku }}</span>
           </div>
           <h1>{{ product.name }}</h1>
+          <button v-if="product.rating.count" type="button" class="info__rating" @click="scrollToReviews">
+            <StarRating :value="product.rating.avg" :size="17" />
+            <strong>{{ product.rating.avg }}</strong>
+            <span>{{ product.rating.count }} відгуків</span>
+          </button>
           <p v-if="product.short_description" class="info__short">{{ product.short_description }}</p>
 
           <dl class="info__facts">
@@ -184,6 +212,10 @@ function addToCart(qty = quantity.value) {
               <small v-if="product.price != null">за {{ product.unit }}</small>
               <span v-if="currentPrice < product.price" class="badge badge--yellow">оптова ціна</span>
             </div>
+            <p v-if="perHa" class="buy__perha">
+              <AppIcon name="wheat" :size="16" /> Обробка 1 гектара: <strong>{{ perHa }}</strong>
+              <span class="muted">(за нормою {{ product.rate_min }}{{ product.rate_max > product.rate_min ? `–${product.rate_max}` : '' }} {{ product.rate_unit }})</span>
+            </p>
 
             <div v-if="product.price_tiers.length" class="tiers">
               <div class="tiers__row" :class="{ active: currentPrice === product.price }">
@@ -204,12 +236,24 @@ function addToCart(qty = quantity.value) {
             </div>
 
             <div class="buy__actions">
-              <QtyInput v-model="quantity" />
-              <button class="btn btn--lg" @click="addToCart()">
+              <QtyInput v-model="quantity" :max="maxQty" />
+              <button class="btn btn--lg" :disabled="soldOut" @click="addToCart()">
                 <AppIcon name="shopping-cart" :size="18" />
-                {{ product.price == null ? 'Запитати ціну' : 'В кошик' }}
+                {{ soldOut ? 'Немає в наявності' : product.price == null ? 'Запитати ціну' : 'В кошик' }}
+              </button>
+              <button
+                type="button"
+                class="btn btn--outline btn--lg buy__compare"
+                :class="{ active: compare.has(product.id) }"
+                :title="compare.has(product.id) ? 'Прибрати з порівняння' : 'Додати до порівняння'"
+                @click="toggleCompare"
+              >
+                <AppIcon name="scale" :size="18" />
               </button>
             </div>
+            <p v-if="soldOut" class="buy__note">
+              Товар тимчасово закінчився. Зателефонуйте нам — підкажемо термін надходження або аналог.
+            </p>
             <p v-if="product.price != null && quantity > 1" class="buy__sum">
               Сума: <strong>{{ formatPrice(currentPrice * quantity) }}</strong>
             </p>
@@ -248,6 +292,9 @@ function addToCart(qty = quantity.value) {
             <button v-if="product.documents?.length" :class="{ active: tab === 'docs' }" role="tab" @click="tab = 'docs'">
               Документи <small>{{ product.documents.length }}</small>
             </button>
+            <button :class="{ active: tab === 'reviews' }" role="tab" @click="tab = 'reviews'">
+              Відгуки <small>{{ product.rating.count }}</small>
+            </button>
             <button :class="{ active: tab === 'delivery' }" role="tab" @click="tab = 'delivery'">Доставка та оплата</button>
           </div>
           <div class="tabs__body">
@@ -269,6 +316,7 @@ function addToCart(qty = quantity.value) {
                 </a>
               </li>
             </ul>
+            <ProductReviews v-else-if="tab === 'reviews'" :slug="product.slug" />
             <div v-else class="delivery">
               <p><AppIcon name="truck" :size="18" /> Доставка по всій Україні: Нова Пошта або власним транспортом (для великих партій).</p>
               <p><AppIcon name="map-pin" :size="18" /> Самовивіз зі складу — у робочий час.</p>
@@ -410,6 +458,26 @@ function addToCart(qty = quantity.value) {
 }
 .help p { margin: 0; font-size: 14px; }
 .help__ai { margin-left: auto; }
+.info__rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 14px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: 500 14px var(--font-body);
+  color: var(--c-muted);
+  cursor: pointer;
+}
+.info__rating strong { color: var(--c-text); }
+.info__rating:hover span { color: var(--c-primary); text-decoration: underline; }
+.buy__perha { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: -6px 0 16px; font-size: 14px; }
+.buy__perha .icon { color: var(--c-primary); }
+.buy__perha strong { color: var(--c-primary-dark); }
+.buy__perha .muted { font-size: 12px; }
+.buy__actions .buy__compare { flex: 0 0 auto; padding: 0; width: 52px; }
+.buy__compare.active { background: var(--c-primary); border-color: var(--c-primary); color: #fff; }
 
 .details {
   display: grid;

@@ -5,6 +5,7 @@
 const bcrypt = require('bcryptjs');
 const config = require('./config');
 const { slugify } = require('./utils');
+const demo = require('./seedDemo');
 
 // Фото для демо беруться за посиланням з Unsplash (у базі зберігається лише URL)
 const photo = (id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1200&q=70`;
@@ -72,7 +73,7 @@ const PRODUCTS = [
   { category: 'insecticides', name: 'Тіаметоксам 250, в.г.', sku: 'INS-002', active_ingredient: 'Тіаметоксам, 250 г/кг', formulation: 'Водорозчинні гранули', packaging: 'Пакет 1 кг', unit: 'кг', price: 3200, stock: 30, crops: 'Пшениця, Ріпак, Картопля, Цукровий буряк',
     short: 'Системний інсектицид проти сисних і листогризучих шкідників.',
     description: 'Тривалий захисний період, ефективний при високих температурах.\n\nНорма витрати: 0,08–0,1 кг/га.' },
-  { category: 'insecticides', name: 'Хлорантраніліпрол 200, к.с.', sku: 'INS-003', active_ingredient: 'Хлорантраніліпрол, 200 г/л', formulation: 'Концентрат суспензії', packaging: 'Флакон 1 л', unit: 'л', price: 6800, stock: 18, crops: 'Кукурудза, Соняшник, Соя, Яблуня',
+  { category: 'insecticides', name: 'Хлорантраніліпрол 200, к.с.', sku: 'INS-003', active_ingredient: 'Хлорантраніліпрол, 200 г/л', formulation: 'Концентрат суспензії', packaging: 'Флакон 1 л', unit: 'л', price: 6800, stock: 4, crops: 'Кукурудза, Соняшник, Соя, Яблуня',
     short: 'Інсектицид проти лускокрилих: кукурудзяний метелик, бавовняна совка.',
     description: 'Діє на всіх стадіях розвитку гусениць, має тривалий період захисту та безпечний для бджіл.\n\nНорма витрати: 0,15–0,2 л/га.' },
 
@@ -99,7 +100,7 @@ const PRODUCTS = [
   { category: 'seeds-wheat', name: 'Пшениця озима «Колосиста», еліта', sku: 'SDW-001', active_ingredient: '', formulation: 'Насіння еліта', packaging: 'Біг-бег 1 т', unit: 'т', price: 19500, stock: 40, crops: 'Пшениця',
     short: 'Середньостиглий сорт інтенсивного типу з високою зимостійкістю.',
     description: 'Потенціал урожайності — до 10 т/га. Висока якість зерна (2 клас).' },
-  { category: 'seeds-rapeseed', name: 'Ріпак озимий, гібрид «Золотий»', sku: 'SDR-001', active_ingredient: '', formulation: 'Посівна одиниця (1,5 млн насінин)', packaging: 'Мішок 1,5 млн насінин', unit: 'п.о.', price: 7200, stock: 55, crops: 'Ріпак',
+  { category: 'seeds-rapeseed', name: 'Ріпак озимий, гібрид «Золотий»', sku: 'SDR-001', active_ingredient: '', formulation: 'Посівна одиниця (1,5 млн насінин)', packaging: 'Мішок 1,5 млн насінин', unit: 'п.о.', price: 7200, stock: 3, crops: 'Ріпак',
     short: 'Високоврожайний гібрид із стійкістю до розтріскування стручків.',
     description: 'Рекомендована густота: 450–550 тис. насінин/га.' },
 
@@ -372,24 +373,36 @@ function upgradeOldData(db) {
   if (!hasAgronomy) applyAgronomy(db);
 }
 
+function seedExtras(db) {
+  demo.seedCalendar(db);
+  demo.seedReviews(db);
+  demo.seedDemoCustomer(db);
+}
+
 function seedIfEmpty(db) {
   ensureAdmin(db);
   const { n } = db.prepare('SELECT COUNT(*) AS n FROM categories').get();
   if (n === 0) seedCatalog(db);
   else upgradeOldData(db);
   seedContent(db);
+  seedExtras(db);
+  // Демо-замовлення для графіків статистики — лише в новій базі
+  if (n === 0) demo.seedDemoOrders(db);
 }
 
 function resetAndSeed(db) {
   db.exec(`
     DELETE FROM order_items; DELETE FROM orders; DELETE FROM service_requests;
+    DELETE FROM reviews; DELETE FROM calendar_step_products; DELETE FROM calendar_steps; DELETE FROM customers;
     DELETE FROM collection_products; DELETE FROM collections; DELETE FROM articles;
     DELETE FROM product_price_tiers; DELETE FROM product_documents;
     DELETE FROM product_images; DELETE FROM products; DELETE FROM brands; DELETE FROM categories;
-    DELETE FROM sqlite_sequence WHERE name IN ('order_items','orders','service_requests','product_images','products','brands','categories');
+    DELETE FROM sqlite_sequence WHERE name IN ('order_items','orders','service_requests','product_images','products','brands','categories','reviews','calendar_steps','customers');
   `);
   seedCatalog(db);
   seedContent(db);
+  seedExtras(db);
+  demo.seedDemoOrders(db);
 }
 
 module.exports = { seedIfEmpty };

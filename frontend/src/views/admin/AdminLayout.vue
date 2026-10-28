@@ -12,10 +12,13 @@ const menuOpen = ref(false);
 
 const links = [
   { to: '/admin', label: 'Огляд', icon: 'gauge', exact: true },
+  { to: '/admin/stats', label: 'Статистика', icon: 'chart' },
   { to: '/admin/orders', label: 'Замовлення', icon: 'receipt' },
   { to: '/admin/requests', label: 'Заявки', icon: 'phone-call' },
   { to: '/admin/products', label: 'Товари', icon: 'package' },
   { to: '/admin/categories', label: 'Категорії', icon: 'layout-grid' },
+  { to: '/admin/reviews', label: 'Відгуки', icon: 'message' },
+  { to: '/admin/calendar', label: 'Календар обробок', icon: 'sprout' },
   { to: '/admin/collections', label: 'Сезонні добірки', icon: 'calendar-days' },
   { to: '/admin/articles', label: 'Статті', icon: 'book-open' },
   { to: '/admin/brands', label: 'Виробники', icon: 'factory' },

@@ -7,7 +7,8 @@ import {
   Globe, Handshake, House, Image, Inbox, Info, Layers, LayoutGrid, Leaf, LogOut, Mail, MapPin, Menu,
   Microscope, Minus, Mountain, Package, Pencil, Percent, Phone, PhoneCall, Plus, Receipt, Search,
   ShieldCheck, ShoppingCart, SlidersHorizontal, Sparkles, Sprout, Star, Sun, Tags, Tractor, Trash2,
-  Truck, Users, Wheat, X,
+  Truck, Users, Wheat, X, User, UserPlus, Scale, Printer, ChartColumn, TrendingUp, TrendingDown,
+  TriangleAlert, RefreshCw, MessageSquare, LogIn, ClipboardList, Warehouse,
 } from '@lucide/vue';
 
 export const ICONS = {
@@ -22,6 +23,9 @@ export const ICONS = {
   receipt: Receipt, search: Search, 'shield-check': ShieldCheck, 'shopping-cart': ShoppingCart,
   sliders: SlidersHorizontal, sparkles: Sparkles, sprout: Sprout, star: Star, sun: Sun, tags: Tags,
   tractor: Tractor, trash: Trash2, truck: Truck, users: Users, wheat: Wheat, x: X,
+  user: User, 'user-plus': UserPlus, scale: Scale, printer: Printer, chart: ChartColumn,
+  'trending-up': TrendingUp, 'trending-down': TrendingDown, alert: TriangleAlert, refresh: RefreshCw,
+  message: MessageSquare, 'log-in': LogIn, clipboard: ClipboardList, warehouse: Warehouse,
 };
 
 // Іконки, які можна обрати для категорій і добірок в адмінці
