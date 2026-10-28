@@ -8,12 +8,13 @@ import {
   Microscope, Minus, Mountain, Package, Pencil, Percent, Phone, PhoneCall, Plus, Receipt, Search,
   ShieldCheck, ShoppingCart, SlidersHorizontal, Sparkles, Sprout, Star, Sun, Tags, Tractor, Trash2,
   Truck, Users, Wheat, X, Trees, Scissors, TreeDeciduous, Thermometer, CloudRain, TriangleAlert,
-  ListChecks, RefreshCw,
+  ListChecks, RefreshCw, CircleHelp, MessageCircle, ChevronUp,
 } from '@lucide/vue';
 
 export const ICONS = {
   apple: Apple, trees: Trees, scissors: Scissors, 'tree-deciduous': TreeDeciduous,
   thermometer: Thermometer, 'cloud-rain': CloudRain, alert: TriangleAlert, 'list-checks': ListChecks, refresh: RefreshCw,
+  help: CircleHelp, message: MessageCircle, 'chevron-up': ChevronUp,
   'arrow-right': ArrowRight, award: Award, 'badge-check': BadgeCheck, 'book-open': BookOpen, bug: Bug,
   calculator: Calculator, 'calendar-days': CalendarDays, check: Check, 'chevron-down': ChevronDown,
   'chevron-right': ChevronRight, clock: Clock, download: Download, droplets: Droplets, eye: Eye,

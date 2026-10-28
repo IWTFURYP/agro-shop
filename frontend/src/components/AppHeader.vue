@@ -4,11 +4,14 @@ import { useRoute, useRouter } from 'vue-router';
 import { SHOP } from '@/config';
 import { useCartStore } from '@/stores/cart';
 import { useCatalogStore } from '@/stores/catalog';
+import { useUiStore } from '@/stores/ui';
 import AppLogo from './AppLogo.vue';
 import AppIcon from './AppIcon.vue';
+import AppDrawer from './AppDrawer.vue';
 
 const cart = useCartStore();
 const catalog = useCatalogStore();
+const ui = useUiStore();
 const route = useRoute();
 const router = useRouter();
 
@@ -18,13 +21,10 @@ const megaOpen = ref(false);
 const scrolled = ref(false);
 const activeCat = ref(null);
 
+// У шапці — лише головні розділи, решта в боковому меню (кнопка ☰), щоб нічого не «з'їжджало»
 const NAV = [
   { to: '/sad', label: 'Яблуневий сад' },
   { to: '/problems', label: 'Підбір за проблемою' },
-  { to: '/services', label: 'Протруювання' },
-  { to: '/articles', label: 'Поради агронома' },
-  { to: '/about', label: 'Про нас' },
-  { to: '/contacts', label: 'Контакти' },
 ];
 
 // Прозора шапка поверх фото лише на головній, доки сторінку не прокрутили
@@ -71,7 +71,10 @@ function submitSearch() {
 <template>
   <header class="header" :class="{ 'header--transparent': transparent, 'header--scrolled': scrolled }">
     <div class="container header__bar">
-      <AppLogo :light="transparent" />
+      <button type="button" class="burger" aria-label="Відкрити меню" :aria-expanded="ui.drawerOpen" @click="ui.openDrawer()">
+        <AppIcon name="menu" :size="24" />
+      </button>
+      <AppLogo :light="transparent" class="header__logo" />
 
       <nav class="header__nav" aria-label="Головне меню">
         <div class="mega-wrap" @mouseenter="megaOpen = true" @mouseleave="megaOpen = false">
@@ -137,9 +140,8 @@ function submitSearch() {
       </form>
 
       <div class="header__actions">
-        <a :href="SHOP.phoneHref" class="icon-btn icon-btn--phone" :title="SHOP.phone">
+        <a :href="SHOP.phoneHref" class="icon-btn icon-btn--phone" :title="SHOP.phone" :aria-label="`Зателефонувати: ${SHOP.phone}`">
           <AppIcon name="phone" :size="20" />
-          <span class="phone-text">{{ SHOP.phone }}</span>
         </a>
         <RouterLink to="/cart" class="icon-btn" aria-label="Кошик">
           <AppIcon name="shopping-cart" :size="20" />
@@ -148,6 +150,7 @@ function submitSearch() {
       </div>
     </div>
   </header>
+  <AppDrawer />
   <!-- Відступ під фіксовану шапку (на головній фото йде під шапку) -->
   <div v-if="route.name !== 'home'" class="header-spacer" />
 </template>
@@ -178,8 +181,26 @@ function submitSearch() {
   height: var(--header-h);
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
 }
+.header__logo { flex-shrink: 0; }
+.burger {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  margin-right: -4px;
+  border: 0;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: var(--c-text);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.burger:hover { background: var(--c-primary-soft); }
+.header--transparent .burger { color: #fff; }
+.header--transparent .burger:hover { background: rgba(255, 255, 255, 0.14); }
 
 .header__nav {
   display: flex;
@@ -367,21 +388,11 @@ function submitSearch() {
   display: grid;
   place-items: center;
 }
-.phone-text { white-space: nowrap; }
 
-@media (max-width: 1520px) {
-  .phone-text { display: none; }
+@media (max-width: 1240px) {
+  .header__nav .nav-link:nth-child(n + 3) { display: none; }
 }
-@media (max-width: 1480px) {
-  .header__nav .nav-link:nth-child(n + 6) { display: none; }
-}
-@media (max-width: 1320px) {
-  .header__nav .nav-link:nth-child(n + 5) { display: none; }
-}
-@media (max-width: 1160px) {
-  .header__nav .nav-link:nth-child(n + 4) { display: none; }
-}
-@media (max-width: 1000px) {
+@media (max-width: 1100px) {
   .header__nav .nav-link:not(.nav-link--catalog) { display: none; }
 }
 @media (max-width: 760px) {
@@ -390,5 +401,10 @@ function submitSearch() {
   .header__actions { display: none; }
   .search { max-width: none; }
   .search__input { height: 40px; }
+  .header__bar { gap: 10px; }
+}
+@media (max-width: 480px) {
+  /* На вузькому екрані лишаємо тільки значок логотипа — більше місця для пошуку */
+  .header__logo :deep(.logo__text) { display: none; }
 }
 </style>

@@ -1,19 +1,14 @@
 <script setup>
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { SHOP } from '@/config';
 import { useCartStore } from '@/stores/cart';
+import { useUiStore } from '@/stores/ui';
 import AppIcon from './AppIcon.vue';
 
 // Нижня панель навігації на телефонах, як у мобільних застосунках
 const cart = useCartStore();
+const ui = useUiStore();
 const route = useRoute();
-const router = useRouter();
-
-async function openSearch() {
-  if (route.name !== 'catalog') await router.push('/catalog');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-  window.dispatchEvent(new Event('focus-search'));
-}
 </script>
 
 <template>
@@ -26,9 +21,10 @@ async function openSearch() {
       <AppIcon name="layout-grid" :size="22" />
       <span>Каталог</span>
     </RouterLink>
-    <button class="tab" type="button" @click="openSearch">
-      <AppIcon name="search" :size="22" />
-      <span>Пошук</span>
+    <!-- Пошук завжди видно в шапці, тому тут — бокове меню з усіма розділами -->
+    <button class="tab" :class="{ active: ui.drawerOpen }" type="button" @click="ui.openDrawer()">
+      <AppIcon name="menu" :size="22" />
+      <span>Меню</span>
     </button>
     <RouterLink to="/cart" class="tab" :class="{ active: route.name === 'cart' || route.name === 'checkout' }">
       <span class="tab__icon">
